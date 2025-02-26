@@ -2,7 +2,7 @@
   "compilerOptions": {
     "incremental": true,
     "target": "es2022",
-    "module": "Node16",
+    "module": "NodeNext",
     "declaration": true,
     "sourceMap": true,
     "outDir": "./lib",
@@ -19,8 +19,13 @@
 
     "moduleResolution": "Node16",
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "include": [
+    "src/**/*",
+    "test/**/*",
+    "vitest.config.ts"
+  ],
   "compileOnSave": false
 }
