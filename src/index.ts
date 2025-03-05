@@ -7,6 +7,7 @@ export default (app: Probot) => {
 	// Pull request comments are just issue comments with code
 	// See: https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28
 	app.on('issue_comment.created', async (ctx) => {
+		const startTime = Date.now();
 		const { issue, comment } = ctx.payload;
 
 		// Don't rebase if:
@@ -99,6 +100,9 @@ export default (app: Probot) => {
 					reaction_id: eyesReactionId,
 				});
 			}
+
+			const duration = Date.now() - startTime;
+			ctx.log.info(withPrefix(`Completed in ${duration}ms`));
 		}
 	});
 };
