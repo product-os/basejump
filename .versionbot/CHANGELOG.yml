@@ -1,0 +1,42 @@
+- commits:
+    - subject: Build and publish Docker images to ghcr.io with Flowzone
+      hash: 72f7e59ada730213f6e1e55ff6b699e081a2fed3
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Kyle Harding <kyle@balena.io>
+        signed-off-by: Kyle Harding <kyle@balena.io>
+      author: Kyle Harding
+    - subject: Implement basic application logic
+      hash: f865a6a3af3d06fde26ec3b9e9ee4e778ebb3107
+      body: >
+        Upon receiving a pull request comment that begins with "/rebase",
+
+        the bot will:
+
+
+        1. React to the comment with an "eyes" emoji to indicate start of rebase
+
+        2. Check if the rebase is required by comparing commits, and bail
+
+        early with "rocket" emoji if branch is up-to-date with base
+
+        3. Rebase using cherry-pick method, as there's no API endpoint
+
+        for a direct rebase
+
+        4. After rebase, react with "rocket" emoji to indicate rebase success
+          * If error during rebase, react with a "confused" emoji to the comment
+          * If error is a code conflict that's resolveable by the user, comment
+            on the PR indicating that the user should resolve the conflict manually.
+          * If error is of another type, log it
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+  version: 0.1.0
+  title: ""
+  date: 2025-03-11T18:12:06.917Z
