@@ -5,7 +5,7 @@
   "description": "A GitHub app for rebasing on demand",
   "author": "Balena",
   "license": "Apache-2.0",
-  "homepage": "https://github.com/balena-io-experimental/basejump",
+  "homepage": "https://github.com/product-os/basejump",
   "keywords": [
     "probot",
     "github",
@@ -13,15 +13,17 @@
   ],
   "scripts": {
     "clean": "rimraf lib",
-    "build": "npm run clean && tsc --project ./tsconfig.release.json",
+    "build": "tsc --project ./tsconfig.release.json",
+    "rebuild": "npm run clean && tsc --project ./tsconfig.release.json",
     "lint": "balena-lint -e ts src test",
     "lint:fix": "balena-lint --fix -e ts src test",
     "start": "probot run ./lib/index.js",
     "test": "npm run build && vitest",
-    "prepare": "husky"
+    "prepare": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module"
   },
   "dependencies": {
-    "probot": "^13.4.3"
+    "probot": "^13.4.3",
+    "typescript": "^5.3.3"
   },
   "devDependencies": {
     "@balena/lint": "^9.1.3",
@@ -31,7 +33,6 @@
     "nock": "^14.0.1",
     "rimraf": "^6.0.1",
     "smee-client": "^3.0.0",
-    "typescript": "^5.3.3",
     "vitest": "^1.3.1"
   },
   "engines": {
