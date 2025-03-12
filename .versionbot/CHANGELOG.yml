@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update dependency @types/node to v22
+      hash: 13a3629b975184a4d3f3534e6fcf2e583d32e1a5
+      body: |
+        Update @types/node from 20.17.19 to 22.13.10
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+  version: 0.1.2
+  title: ""
+  date: 2025-03-12T13:16:21.437Z
+- commits:
     - subject: Update dependency vitest to v3
       hash: 5c703bf2c9ba9bbdcd0b0f7515ad19a0d39da810
       body: |
