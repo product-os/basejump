@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update dependency vitest to v3
+      hash: 5c703bf2c9ba9bbdcd0b0f7515ad19a0d39da810
+      body: |
+        Update vitest from 1.6.1 to 3.0.8
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+  version: 0.1.1
+  title: ""
+  date: 2025-03-12T12:54:02.558Z
+- commits:
     - subject: Build and publish Docker images to ghcr.io with Flowzone
       hash: 72f7e59ada730213f6e1e55ff6b699e081a2fed3
       body: ""
