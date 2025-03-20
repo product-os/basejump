@@ -1,4 +1,17 @@
 - commits:
+    - subject: Add detailed documentation
+      hash: ce5e68c0ec4666c964faa8ca9201b2bf9fd0477e
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+  version: 0.1.3
+  title: ""
+  date: 2025-03-20T18:43:07.738Z
+- commits:
     - subject: Update dependency @types/node to v22
       hash: 13a3629b975184a4d3f3534e6fcf2e583d32e1a5
       body: |

@@ -1,6 +1,6 @@
 {
   "name": "basejump",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "A GitHub app for rebasing on demand",
   "author": "Balena",
@@ -40,6 +40,6 @@
   },
   "type": "module",
   "versionist": {
-    "publishedAt": "2025-03-12T13:16:21.482Z"
+    "publishedAt": "2025-03-20T18:43:07.785Z"
   }
 }
