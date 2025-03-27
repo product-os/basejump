@@ -158,7 +158,7 @@ describe('basejump', () => {
 				behind_by: 2,
 				total_commits: 1,
 			})
-			// Get base commit (D)
+			// Get base commit
 			.get('/repos/balena-user/github-app-test/commits/main')
 			.reply(200, {
 				sha: 'base-sha',
@@ -176,7 +176,7 @@ describe('basejump', () => {
 				return true;
 			})
 			.reply(201)
-			// Cherry-pick 1: get the feature branch commit (E)
+			// Cherry-pick 1: get the feature branch commit
 			.get('/repos/balena-user/github-app-test/git/commits/commit-1')
 			.reply(200, {
 				parents: [{ sha: 'parent' }],
@@ -184,7 +184,7 @@ describe('basejump', () => {
 				committer: { name: 'test', email: 'test@test.com' },
 				message: 'test commit',
 			})
-			// Cherry-pick 2: create a temp sibling commit (F)
+			// Cherry-pick 2: create a temp sibling commit
 			.post('/repos/balena-user/github-app-test/git/commits', (body) => {
 				expect(body.message).toEqual('Temp sibling of commit-1');
 				expect(body.parents[0]).toEqual('parent');
@@ -226,6 +226,161 @@ describe('basejump', () => {
 			.post('/repos/balena-user/github-app-test/git/commits', (body) => {
 				expect(body.message).toEqual('test commit');
 				expect(body.parents[0]).toEqual('base-sha');
+				expect(body.tree).toEqual('tmp-tree-sha');
+				return true;
+			})
+			.reply(201, {
+				sha: 'rebased-commit-sha',
+				tree: { sha: 'rebased-tree-sha' },
+			})
+			// Cherry-pick 6: update ref to new commit
+			.patch(
+				(uri) =>
+					uri.startsWith(
+						'/repos/balena-user/github-app-test/git/refs/heads%2Fbasejump%2Frebase-pr-',
+					),
+				(body) => {
+					expect(body.sha).toEqual('rebased-commit-sha');
+					expect(body.force).toEqual(true);
+					return true;
+				},
+			)
+			.reply(201)
+			// After cherry-picks: Update PR branch with rebased commit
+			.patch(
+				(uri) =>
+					uri.startsWith(
+						'/repos/balena-user/github-app-test/git/refs/heads%2Ffeature',
+					),
+				(body) => {
+					expect(body.sha).toEqual('rebased-commit-sha');
+					expect(body.force).toEqual(true);
+					return true;
+				},
+			)
+			.reply(201)
+			// Clean up temp branch
+			.delete((uri) =>
+				uri.startsWith(
+					'/repos/balena-user/github-app-test/git/refs/heads%2Fbasejump%2Frebase-pr-',
+				),
+			)
+			.reply(204)
+			// React to rebase success
+			.post(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+				{
+					content: 'rocket',
+				},
+			)
+			.reply(201)
+			// Delete eyes reaction
+			.delete(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions/${EYES_REACTION_ID}`,
+			)
+			.reply(204);
+
+		await probot.receive({
+			name: 'issue_comment',
+			payload,
+		});
+
+		expect(mock.pendingMocks()).toHaveLength(0);
+	});
+
+	test('handles rebase where PR base sha is outdated', async () => {
+		const mock = nock('https://api.github.com')
+			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
+			.reply(200, { token: 'test' })
+			// Initial eyes reaction
+			.post(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+			)
+			.reply(201, { id: EYES_REACTION_ID })
+			// Get PR (feature)
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
+			.reply(200, {
+				number: PR_NUMBER,
+				base: { ref: 'main', sha: 'base-sha' },
+				head: { ref: 'feature', sha: 'head-sha' },
+			})
+			// Compare branches, with behind_by indicating a rebase is required
+			.get('/repos/balena-user/github-app-test/compare/main...feature')
+			.reply(200, {
+				status: 'diverged',
+				ahead_by: 1,
+				behind_by: 2,
+				total_commits: 1,
+			})
+			// Get base commit
+			// The base commit sha has changed since the PR was created
+			.get('/repos/balena-user/github-app-test/commits/main')
+			.reply(200, {
+				sha: 'base-sha-updated',
+				commit: { tree: { sha: 'base-tree-sha' } },
+			})
+			// List feature branch commits
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.reply(200, [{ sha: 'commit-1' }])
+			// Create temp branch from base commit, using the updated sha
+			.post('/repos/balena-user/github-app-test/git/refs', (body) => {
+				expect(body.ref.startsWith(`refs/heads/${TMP_BRANCH_PREFIX}`)).toEqual(
+					true,
+				);
+				expect(body.sha).toEqual('base-sha-updated');
+				return true;
+			})
+			.reply(201)
+			// Cherry-pick 1: get the feature branch commit
+			.get('/repos/balena-user/github-app-test/git/commits/commit-1')
+			.reply(200, {
+				parents: [{ sha: 'parent' }],
+				author: { name: 'test', email: 'test@test.com' },
+				committer: { name: 'test', email: 'test@test.com' },
+				message: 'test commit',
+			})
+			// Cherry-pick 2: create a temp sibling commit
+			.post('/repos/balena-user/github-app-test/git/commits', (body) => {
+				expect(body.message).toEqual('Temp sibling of commit-1');
+				expect(body.parents[0]).toEqual('parent');
+				expect(body.tree).toEqual('base-tree-sha');
+				return true;
+			})
+			.reply(201, { sha: 'sibling-sha' })
+			// Cherry-pick 3: update ref to sibling commit
+			.patch(
+				(uri) => {
+					return uri.startsWith(
+						'/repos/balena-user/github-app-test/git/refs/heads%2Fbasejump%2Frebase-pr-',
+					);
+				},
+				(body) => {
+					expect(body.sha).toEqual('sibling-sha');
+					expect(body.force).toEqual(true);
+					return true;
+				},
+			)
+			.reply(201)
+			// Cherry-pick 4: merge original commit onto branch
+			.post('/repos/balena-user/github-app-test/merges', (body) => {
+				expect(body.base.startsWith(TMP_BRANCH_PREFIX)).toEqual(true);
+				expect(body.head).toEqual('commit-1');
+				expect(
+					body.commit_message.startsWith(
+						`Merge commit-1 into ${TMP_BRANCH_PREFIX}`,
+					),
+				).toEqual(true);
+				return true;
+			})
+			.reply(201, {
+				commit: {
+					tree: { sha: 'tmp-tree-sha' },
+				},
+			})
+			// Cherry-pick 5: create a new commit with original message
+			.post('/repos/balena-user/github-app-test/git/commits', (body) => {
+				expect(body.message).toEqual('test commit');
+				expect(body.parents[0]).toEqual('base-sha-updated');
 				expect(body.tree).toEqual('tmp-tree-sha');
 				return true;
 			})
