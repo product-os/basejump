@@ -18,7 +18,7 @@
     "lint": "balena-lint -e ts src test",
     "lint:fix": "balena-lint --fix -e ts src test",
     "start": "probot run ./lib/index.js",
-    "test": "npm run build && vitest",
+    "test": "npm run rebuild && vitest",
     "prepare": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module"
   },
   "dependencies": {
