@@ -221,6 +221,20 @@ export const rebase = async (
 			currentTree = result.tree.sha;
 		}
 
+		// Abort the rebase if PR HEAD SHA has changed,
+		// such as if a change to the feature branch was made since the rebase was started
+		const {
+			data: {
+				head: { sha: headSha },
+			},
+		} = await ctx.octokit.pulls.get({
+			...ctx.repo(),
+			pull_number: pr.number,
+		});
+		if (headSha !== pr.head.sha) {
+			throw new Error('Feature branch HEAD SHA has changed, aborting rebase');
+		}
+
 		// Update PR branch with rebased commits
 		await ctx.octokit.git.updateRef({
 			...ctx.repo(),
