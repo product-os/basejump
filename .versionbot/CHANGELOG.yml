@@ -1,4 +1,20 @@
 - commits:
+    - subject: Abort if feature branch HEAD sha has changed
+      hash: 84e5381b5e16e0d27e3f5fc3bcd8dce56a2ef3aa
+      body: |
+        This can occur if there was a feature branch code change
+        since the rebase has started. Aborting in this case will
+        prevent code change loss.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+  version: 0.1.5
+  title: ""
+  date: 2025-03-28T18:45:26.416Z
+- commits:
     - subject: Use latest base SHA for cherry-picks
       hash: c6997a8f8dd1edb6ce8ae2221282ccdd11fa62e7
       body: ""
