@@ -179,7 +179,14 @@ export const rebase = async (
 	const tempBranchName = `basejump/rebase-pr-${pr.number}-${Date.now()}`;
 	try {
 		// Fetch base SHA in case pr.base.sha is outdated
-		const { data: baseCommit } = await ctx.octokit.repos.getCommit({
+		const {
+			data: {
+				sha: baseSha,
+				commit: {
+					tree: { sha: baseTree },
+				},
+			},
+		} = await ctx.octokit.repos.getCommit({
 			...ctx.repo(),
 			ref: pr.base.ref,
 		});
@@ -194,12 +201,12 @@ export const rebase = async (
 		await ctx.octokit.git.createRef({
 			...ctx.repo(),
 			ref: `refs/heads/${tempBranchName}`,
-			sha: baseCommit.sha,
+			sha: baseSha,
 		});
 
 		// Cherry-pick each commit
-		let currentSha = pr.base.sha;
-		let currentTree = baseCommit.commit.tree.sha;
+		let currentSha = baseSha;
+		let currentTree = baseTree;
 
 		for (const commit of commits) {
 			const result = await cherryPickCommit(ctx, {

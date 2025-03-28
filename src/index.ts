@@ -79,11 +79,10 @@ export default (app: Probot) => {
 				ctx.log.error(withPrefix(messageParts.join(' ')));
 			} else if (isHttpError(error)) {
 				const {
-					status,
 					response: { data },
 				} = error;
 				ctx.log.error(
-					withPrefix(`Failed to rebase with status ${status}: ${data}`),
+					withPrefix(`Failed to rebase: ${JSON.stringify(data, null, 2)}`),
 				);
 			} else {
 				ctx.log.error(withPrefix(`Failed to rebase: ${error}`));
