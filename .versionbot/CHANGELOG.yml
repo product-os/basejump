@@ -1,4 +1,17 @@
 - commits:
+    - subject: Use latest base SHA for cherry-picks
+      hash: c6997a8f8dd1edb6ce8ae2221282ccdd11fa62e7
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+  version: 0.1.4
+  title: ""
+  date: 2025-03-28T18:19:07.337Z
+- commits:
     - subject: Add detailed documentation
       hash: ce5e68c0ec4666c964faa8ca9201b2bf9fd0477e
       body: ""
