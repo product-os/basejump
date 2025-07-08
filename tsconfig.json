@@ -9,6 +9,7 @@
 
     /* Strict Type-Checking Options */
     "strict": true,
+    "strictNullChecks": true,
 
     /* Additional Checks */
     "noUnusedLocals": true,

@@ -10,17 +10,27 @@ import {
 	beforeAll,
 	test,
 	expect,
+	vi,
 } from 'vitest';
 
 import app from '../src/index.js';
+import rebase from '../src/rebase.js';
+import { CodeConflictError, RemoteChangedError } from '../src/errors.js';
 import payload from './fixtures/issue_comment.created.pull_request.json' with { type: 'json' };
+
+// Mock the rebase module, as it's unit tested elsewhere
+// and its network calls are not easy to mock in this test file
+vi.mock('../src/rebase.js', () => ({
+	default: vi.fn(),
+}));
+
+const rebaseMock = vi.mocked(rebase);
 
 describe('basejump', () => {
 	const dirname = path.dirname(fileURLToPath(import.meta.url));
 	let probot: any;
 	let privateKey: string;
 
-	const TMP_BRANCH_PREFIX = 'basejump/rebase-pr-';
 	const INSTALLATION_ID = payload.installation.id;
 	const COMMENT_ID = payload.comment.id;
 	const PR_NUMBER = payload.issue.number;
@@ -48,6 +58,7 @@ describe('basejump', () => {
 	});
 
 	afterEach(() => {
+		vi.clearAllMocks();
 		nock.cleanAll();
 		nock.enableNetConnect();
 	});
@@ -86,7 +97,7 @@ describe('basejump', () => {
 	});
 
 	test('handles up-to-date branches', async () => {
-		const mock = nock('https://api.github.com')
+		const githubMock = nock('https://api.github.com')
 			// Probot gets an auth token on our behalf
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
@@ -131,11 +142,14 @@ describe('basejump', () => {
 			},
 		});
 
-		expect(mock.pendingMocks()).toHaveLength(0);
+		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 
-	test('handles rebase with one feature branch commit', async () => {
-		const mock = nock('https://api.github.com')
+	test('handles rebase', async () => {
+		// Mock rebase success
+		rebaseMock.mockResolvedValue(undefined);
+
+		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
 			// Initial eyes reaction
@@ -158,120 +172,7 @@ describe('basejump', () => {
 				behind_by: 2,
 				total_commits: 1,
 			})
-			// Get base commit
-			.get('/repos/balena-user/github-app-test/commits/main')
-			.reply(200, {
-				sha: 'base-sha',
-				commit: { tree: { sha: 'base-tree-sha' } },
-			})
-			// List feature branch commits
-			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
-			.reply(200, [{ sha: 'commit-1' }])
-			// Create temp branch from base commit
-			.post('/repos/balena-user/github-app-test/git/refs', (body) => {
-				expect(body.ref.startsWith(`refs/heads/${TMP_BRANCH_PREFIX}`)).toEqual(
-					true,
-				);
-				expect(body.sha).toEqual('base-sha');
-				return true;
-			})
-			.reply(201)
-			// Cherry-pick 1: get the feature branch commit
-			.get('/repos/balena-user/github-app-test/git/commits/commit-1')
-			.reply(200, {
-				parents: [{ sha: 'parent' }],
-				author: { name: 'test', email: 'test@test.com' },
-				committer: { name: 'test', email: 'test@test.com' },
-				message: 'test commit',
-			})
-			// Cherry-pick 2: create a temp sibling commit
-			.post('/repos/balena-user/github-app-test/git/commits', (body) => {
-				expect(body.message).toEqual('Temp sibling of commit-1');
-				expect(body.parents[0]).toEqual('parent');
-				expect(body.tree).toEqual('base-tree-sha');
-				return true;
-			})
-			.reply(201, { sha: 'sibling-sha' })
-			// Cherry-pick 3: update ref to sibling commit
-			.patch(
-				(uri) => {
-					return uri.startsWith(
-						'/repos/balena-user/github-app-test/git/refs/heads%2Fbasejump%2Frebase-pr-',
-					);
-				},
-				(body) => {
-					expect(body.sha).toEqual('sibling-sha');
-					expect(body.force).toEqual(true);
-					return true;
-				},
-			)
-			.reply(201)
-			// Cherry-pick 4: merge original commit onto branch
-			.post('/repos/balena-user/github-app-test/merges', (body) => {
-				expect(body.base.startsWith(TMP_BRANCH_PREFIX)).toEqual(true);
-				expect(body.head).toEqual('commit-1');
-				expect(
-					body.commit_message.startsWith(
-						`Merge commit-1 into ${TMP_BRANCH_PREFIX}`,
-					),
-				).toEqual(true);
-				return true;
-			})
-			.reply(201, {
-				commit: {
-					tree: { sha: 'tmp-tree-sha' },
-				},
-			})
-			// Cherry-pick 5: create a new commit with original message
-			.post('/repos/balena-user/github-app-test/git/commits', (body) => {
-				expect(body.message).toEqual('test commit');
-				expect(body.parents[0]).toEqual('base-sha');
-				expect(body.tree).toEqual('tmp-tree-sha');
-				return true;
-			})
-			.reply(201, {
-				sha: 'rebased-commit-sha',
-				tree: { sha: 'rebased-tree-sha' },
-			})
-			// Cherry-pick 6: update ref to new commit
-			.patch(
-				(uri) =>
-					uri.startsWith(
-						'/repos/balena-user/github-app-test/git/refs/heads%2Fbasejump%2Frebase-pr-',
-					),
-				(body) => {
-					expect(body.sha).toEqual('rebased-commit-sha');
-					expect(body.force).toEqual(true);
-					return true;
-				},
-			)
-			.reply(201)
-			// After cherry-picks: Check that feature branch HEAD SHA is unchanged
-			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
-			.reply(200, {
-				number: PR_NUMBER,
-				head: { sha: 'head-sha' },
-			})
-			// Update PR branch with rebased commit
-			.patch(
-				(uri) =>
-					uri.startsWith(
-						'/repos/balena-user/github-app-test/git/refs/heads%2Ffeature',
-					),
-				(body) => {
-					expect(body.sha).toEqual('rebased-commit-sha');
-					expect(body.force).toEqual(true);
-					return true;
-				},
-			)
-			.reply(201)
-			// Clean up temp branch
-			.delete((uri) =>
-				uri.startsWith(
-					'/repos/balena-user/github-app-test/git/refs/heads%2Fbasejump%2Frebase-pr-',
-				),
-			)
-			.reply(204)
+			// This is where the rebase takes place, but it's mocked here so there are no network calls
 			// React to rebase success
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -291,11 +192,16 @@ describe('basejump', () => {
 			payload,
 		});
 
-		expect(mock.pendingMocks()).toHaveLength(0);
+		expect(rebaseMock).toHaveBeenCalledWith(
+			'https://github.com/balena-user/github-app-test.git',
+			'feature',
+			'main',
+		);
+		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 
 	test('handles rebase where PR base sha is outdated', async () => {
-		const mock = nock('https://api.github.com')
+		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
 			// Initial eyes reaction
@@ -318,121 +224,7 @@ describe('basejump', () => {
 				behind_by: 2,
 				total_commits: 1,
 			})
-			// Get base commit
-			// The base commit sha has changed since the PR was created
-			.get('/repos/balena-user/github-app-test/commits/main')
-			.reply(200, {
-				sha: 'base-sha-updated',
-				commit: { tree: { sha: 'base-tree-sha' } },
-			})
-			// List feature branch commits
-			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
-			.reply(200, [{ sha: 'commit-1' }])
-			// Create temp branch from base commit, using the updated sha
-			.post('/repos/balena-user/github-app-test/git/refs', (body) => {
-				expect(body.ref.startsWith(`refs/heads/${TMP_BRANCH_PREFIX}`)).toEqual(
-					true,
-				);
-				expect(body.sha).toEqual('base-sha-updated');
-				return true;
-			})
-			.reply(201)
-			// Cherry-pick 1: get the feature branch commit
-			.get('/repos/balena-user/github-app-test/git/commits/commit-1')
-			.reply(200, {
-				parents: [{ sha: 'parent' }],
-				author: { name: 'test', email: 'test@test.com' },
-				committer: { name: 'test', email: 'test@test.com' },
-				message: 'test commit',
-			})
-			// Cherry-pick 2: create a temp sibling commit
-			.post('/repos/balena-user/github-app-test/git/commits', (body) => {
-				expect(body.message).toEqual('Temp sibling of commit-1');
-				expect(body.parents[0]).toEqual('parent');
-				expect(body.tree).toEqual('base-tree-sha');
-				return true;
-			})
-			.reply(201, { sha: 'sibling-sha' })
-			// Cherry-pick 3: update ref to sibling commit
-			.patch(
-				(uri) => {
-					return uri.startsWith(
-						'/repos/balena-user/github-app-test/git/refs/heads%2Fbasejump%2Frebase-pr-',
-					);
-				},
-				(body) => {
-					expect(body.sha).toEqual('sibling-sha');
-					expect(body.force).toEqual(true);
-					return true;
-				},
-			)
-			.reply(201)
-			// Cherry-pick 4: merge original commit onto branch
-			.post('/repos/balena-user/github-app-test/merges', (body) => {
-				expect(body.base.startsWith(TMP_BRANCH_PREFIX)).toEqual(true);
-				expect(body.head).toEqual('commit-1');
-				expect(
-					body.commit_message.startsWith(
-						`Merge commit-1 into ${TMP_BRANCH_PREFIX}`,
-					),
-				).toEqual(true);
-				return true;
-			})
-			.reply(201, {
-				commit: {
-					tree: { sha: 'tmp-tree-sha' },
-				},
-			})
-			// Cherry-pick 5: create a new commit with original message
-			.post('/repos/balena-user/github-app-test/git/commits', (body) => {
-				expect(body.message).toEqual('test commit');
-				expect(body.parents[0]).toEqual('base-sha-updated');
-				expect(body.tree).toEqual('tmp-tree-sha');
-				return true;
-			})
-			.reply(201, {
-				sha: 'rebased-commit-sha',
-				tree: { sha: 'rebased-tree-sha' },
-			})
-			// Cherry-pick 6: update ref to new commit
-			.patch(
-				(uri) =>
-					uri.startsWith(
-						'/repos/balena-user/github-app-test/git/refs/heads%2Fbasejump%2Frebase-pr-',
-					),
-				(body) => {
-					expect(body.sha).toEqual('rebased-commit-sha');
-					expect(body.force).toEqual(true);
-					return true;
-				},
-			)
-			.reply(201)
-			// After cherry-picks: Check that feature branch HEAD SHA is unchanged
-			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
-			.reply(200, {
-				number: PR_NUMBER,
-				head: { sha: 'head-sha' },
-			})
-			// Update PR branch with rebased commit
-			.patch(
-				(uri) =>
-					uri.startsWith(
-						'/repos/balena-user/github-app-test/git/refs/heads%2Ffeature',
-					),
-				(body) => {
-					expect(body.sha).toEqual('rebased-commit-sha');
-					expect(body.force).toEqual(true);
-					return true;
-				},
-			)
-			.reply(201)
-			// Clean up temp branch
-			.delete((uri) =>
-				uri.startsWith(
-					'/repos/balena-user/github-app-test/git/refs/heads%2Fbasejump%2Frebase-pr-',
-				),
-			)
-			.reply(204)
+			// This is where the rebase takes place, but it's mocked here so there are no network calls
 			// React to rebase success
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -452,11 +244,19 @@ describe('basejump', () => {
 			payload,
 		});
 
-		expect(mock.pendingMocks()).toHaveLength(0);
+		expect(rebaseMock).toHaveBeenCalledWith(
+			'https://github.com/balena-user/github-app-test.git',
+			'feature',
+			'main',
+		);
+		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 
-	test('handles rebase where feature branch HEAD SHA has changed', async () => {
-		const mock = nock('https://api.github.com')
+	test('handles rebase where feature branch head sha has changed', async () => {
+		// Remote feature branch head sha has changed, so rebase should throw RemoteChangedError
+		rebaseMock.mockRejectedValue(new RemoteChangedError('Remote changed'));
+
+		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
 			// Initial eyes reaction
@@ -479,108 +279,7 @@ describe('basejump', () => {
 				behind_by: 2,
 				total_commits: 1,
 			})
-			// Get base commit
-			.get('/repos/balena-user/github-app-test/commits/main')
-			.reply(200, {
-				sha: 'base-sha',
-				commit: { tree: { sha: 'base-tree-sha' } },
-			})
-			// List feature branch commits
-			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
-			.reply(200, [{ sha: 'commit-1' }])
-			// Create temp branch from base commit
-			.post('/repos/balena-user/github-app-test/git/refs', (body) => {
-				expect(body.ref.startsWith(`refs/heads/${TMP_BRANCH_PREFIX}`)).toEqual(
-					true,
-				);
-				expect(body.sha).toEqual('base-sha');
-				return true;
-			})
-			.reply(201)
-			// Cherry-pick 1: get the feature branch commit
-			.get('/repos/balena-user/github-app-test/git/commits/commit-1')
-			.reply(200, {
-				parents: [{ sha: 'parent' }],
-				author: { name: 'test', email: 'test@test.com' },
-				committer: { name: 'test', email: 'test@test.com' },
-				message: 'test commit',
-			})
-			// Cherry-pick 2: create a temp sibling commit
-			.post('/repos/balena-user/github-app-test/git/commits', (body) => {
-				expect(body.message).toEqual('Temp sibling of commit-1');
-				expect(body.parents[0]).toEqual('parent');
-				expect(body.tree).toEqual('base-tree-sha');
-				return true;
-			})
-			.reply(201, { sha: 'sibling-sha' })
-			// Cherry-pick 3: update ref to sibling commit
-			.patch(
-				(uri) => {
-					return uri.startsWith(
-						'/repos/balena-user/github-app-test/git/refs/heads%2Fbasejump%2Frebase-pr-',
-					);
-				},
-				(body) => {
-					expect(body.sha).toEqual('sibling-sha');
-					expect(body.force).toEqual(true);
-					return true;
-				},
-			)
-			.reply(201)
-			// Cherry-pick 4: merge original commit onto branch
-			.post('/repos/balena-user/github-app-test/merges', (body) => {
-				expect(body.base.startsWith(TMP_BRANCH_PREFIX)).toEqual(true);
-				expect(body.head).toEqual('commit-1');
-				expect(
-					body.commit_message.startsWith(
-						`Merge commit-1 into ${TMP_BRANCH_PREFIX}`,
-					),
-				).toEqual(true);
-				return true;
-			})
-			.reply(201, {
-				commit: {
-					tree: { sha: 'tmp-tree-sha' },
-				},
-			})
-			// Cherry-pick 5: create a new commit with original message
-			.post('/repos/balena-user/github-app-test/git/commits', (body) => {
-				expect(body.message).toEqual('test commit');
-				expect(body.parents[0]).toEqual('base-sha');
-				expect(body.tree).toEqual('tmp-tree-sha');
-				return true;
-			})
-			.reply(201, {
-				sha: 'rebased-commit-sha',
-				tree: { sha: 'rebased-tree-sha' },
-			})
-			// Cherry-pick 6: update ref to new commit
-			.patch(
-				(uri) =>
-					uri.startsWith(
-						'/repos/balena-user/github-app-test/git/refs/heads%2Fbasejump%2Frebase-pr-',
-					),
-				(body) => {
-					expect(body.sha).toEqual('rebased-commit-sha');
-					expect(body.force).toEqual(true);
-					return true;
-				},
-			)
-			.reply(201)
-			// After cherry-picks: Check that feature branch HEAD SHA is unchanged
-			// In this test, the HEAD SHA has changed, so the rebase should be aborted
-			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
-			.reply(200, {
-				number: PR_NUMBER,
-				head: { sha: 'head-sha-changed' },
-			})
-			// Clean up temp branch
-			.delete((uri) =>
-				uri.startsWith(
-					'/repos/balena-user/github-app-test/git/refs/heads%2Fbasejump%2Frebase-pr-',
-				),
-			)
-			.reply(204)
+			// This is where the rebase takes place, but it's mocked here so there are no network calls
 			// Notify of rebase failure
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -600,11 +299,21 @@ describe('basejump', () => {
 			payload,
 		});
 
-		expect(mock.pendingMocks()).toHaveLength(0);
+		expect(rebaseMock).toHaveBeenCalledWith(
+			'https://github.com/balena-user/github-app-test.git',
+			'feature',
+			'main',
+		);
+		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 
 	test('handles rebase with a code conflict', async () => {
-		const mock = nock('https://api.github.com')
+		// Mock rebase failure with a code conflict
+		rebaseMock.mockRejectedValue(
+			new CodeConflictError('Conflict detected', 'commit-1'),
+		);
+
+		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
 			// Initial eyes reaction
@@ -627,76 +336,7 @@ describe('basejump', () => {
 				behind_by: 2,
 				total_commits: 1,
 			})
-			// Get base commit (D)
-			.get('/repos/balena-user/github-app-test/commits/main')
-			.reply(200, {
-				sha: 'base-sha',
-				commit: { tree: { sha: 'base-tree-sha' } },
-			})
-			// List feature branch commits
-			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
-			.reply(200, [{ sha: 'commit-1' }])
-			// Create temp branch from base commit
-			.post('/repos/balena-user/github-app-test/git/refs', (body) => {
-				expect(body.ref.startsWith(`refs/heads/${TMP_BRANCH_PREFIX}`)).toEqual(
-					true,
-				);
-				expect(body.sha).toEqual('base-sha');
-				return true;
-			})
-			.reply(201)
-			// Cherry-pick 1: get the feature branch commit (E)
-			.get('/repos/balena-user/github-app-test/git/commits/commit-1')
-			.reply(200, {
-				parents: [{ sha: 'parent' }],
-				author: { name: 'test', email: 'test@test.com' },
-				committer: { name: 'test', email: 'test@test.com' },
-				message: 'test commit',
-			})
-			// Cherry-pick 2: create a temp sibling commit (F)
-			.post('/repos/balena-user/github-app-test/git/commits', (body) => {
-				expect(body.message).toEqual('Temp sibling of commit-1');
-				expect(body.parents[0]).toEqual('parent');
-				expect(body.tree).toEqual('base-tree-sha');
-				return true;
-			})
-			.reply(201, { sha: 'sibling-sha' })
-			// Cherry-pick 3: update ref to sibling commit
-			.patch(
-				(uri) => {
-					return uri.startsWith(
-						'/repos/balena-user/github-app-test/git/refs/heads%2Fbasejump%2Frebase-pr-',
-					);
-				},
-				(body) => {
-					expect(body.sha).toEqual('sibling-sha');
-					expect(body.force).toEqual(true);
-					return true;
-				},
-			)
-			.reply(201)
-			// Cherry-pick 4: merge original commit onto branch, and raise code conflict
-			.post('/repos/balena-user/github-app-test/merges', (body) => {
-				expect(body.base.startsWith(TMP_BRANCH_PREFIX)).toEqual(true);
-				expect(body.head).toEqual('commit-1');
-				expect(
-					body.commit_message.startsWith(
-						`Merge commit-1 into ${TMP_BRANCH_PREFIX}`,
-					),
-				).toEqual(true);
-				return true;
-			})
-			.reply(409, {
-				status: 409,
-				response: { data: { message: 'Merge conflict' } },
-			})
-			// Clean up temp branch
-			.delete((uri) =>
-				uri.startsWith(
-					'/repos/balena-user/github-app-test/git/refs/heads%2Fbasejump%2Frebase-pr-',
-				),
-			)
-			.reply(204)
+			// This is where the rebase takes place, but it's mocked here so there are no network calls
 			// Create a comment on the PR with the code conflict error
 			.post(
 				`/repos/balena-user/github-app-test/issues/${PR_NUMBER}/comments`,
@@ -729,11 +369,11 @@ describe('basejump', () => {
 			payload,
 		});
 
-		expect(mock.pendingMocks()).toHaveLength(0);
+		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 
 	test('handles rebase with other HTTP errors from GH API', async () => {
-		const mock = nock('https://api.github.com')
+		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
 			// Initial eyes reaction
@@ -766,6 +406,6 @@ describe('basejump', () => {
 			payload,
 		});
 
-		expect(mock.pendingMocks()).toHaveLength(0);
+		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 });

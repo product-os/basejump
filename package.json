@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "probot": "^13.4.3",
+    "simple-git": "^3.28.0",
     "typescript": "^5.3.3"
   },
   "devDependencies": {
