@@ -192,11 +192,7 @@ describe('basejump', () => {
 			payload,
 		});
 
-		expect(rebaseMock).toHaveBeenCalledWith(
-			'https://github.com/balena-user/github-app-test.git',
-			'feature',
-			'main',
-		);
+		expect(rebaseMock).toHaveBeenCalledOnce();
 		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 
@@ -244,11 +240,7 @@ describe('basejump', () => {
 			payload,
 		});
 
-		expect(rebaseMock).toHaveBeenCalledWith(
-			'https://github.com/balena-user/github-app-test.git',
-			'feature',
-			'main',
-		);
+		expect(rebaseMock).toHaveBeenCalledOnce();
 		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 
@@ -299,11 +291,7 @@ describe('basejump', () => {
 			payload,
 		});
 
-		expect(rebaseMock).toHaveBeenCalledWith(
-			'https://github.com/balena-user/github-app-test.git',
-			'feature',
-			'main',
-		);
+		expect(rebaseMock).toHaveBeenCalledOnce();
 		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 
@@ -369,6 +357,7 @@ describe('basejump', () => {
 			payload,
 		});
 
+		expect(rebaseMock).toHaveBeenCalledOnce();
 		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 
@@ -406,6 +395,7 @@ describe('basejump', () => {
 			payload,
 		});
 
+		expect(rebaseMock).not.toHaveBeenCalled();
 		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 });

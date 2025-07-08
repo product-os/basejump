@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { simpleGit } from 'simple-git';
 import type { SimpleGit } from 'simple-git';
+import type { Logger } from 'pino';
 
 import { CodeConflictError, RemoteChangedError } from './errors.js';
 
@@ -17,6 +18,7 @@ export default async function run(
 	remoteUri: string,
 	featBranch: string,
 	baseBranch: string,
+	logger?: Logger,
 ): Promise<void> {
 	// Create a temp dir to clone the repo into
 	const workingDir = await mkdtemp(join(tmpdir(), `basejump-${Date.now()}-`));
@@ -31,13 +33,17 @@ export default async function run(
 		// clone nor checkout are expected to fail. Although there is a chance
 		// that the remote feature branch is deleted right after the rebase is
 		// triggered but before the checkout is performed, this is extremely unlikely.
+		logger?.debug(`Cloning ${remoteUri}`);
 		await git.clone(remoteUri, workingDir);
+		logger?.debug(`Checking out ${featBranch}`);
 		await git.checkout(featBranch);
 
+		logger?.debug(`Rebasing ${featBranch} onto ${baseBranch}`);
 		const wasRebased = await doRebase(git, baseBranch);
 
 		// Only modify remote if rebase was performed
 		if (wasRebased) {
+			logger?.debug(`Pushing ${featBranch} to origin`);
 			await forcePushWithLease(git, featBranch);
 		}
 	} finally {

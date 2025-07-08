@@ -1,4 +1,4 @@
-import type { Probot, Context } from 'probot';
+import type { Probot, Context, Logger } from 'probot';
 
 import { createIssueCommentReaction } from './github.js';
 import {
@@ -7,6 +7,27 @@ import {
 	RemoteChangedError,
 } from './errors.js';
 import rebase from './rebase.js';
+
+// Attach a prefix to all log messages
+const loggerWithPrefix = (
+	ctx: Context,
+	prefixer: (prefix: string) => string,
+) => {
+	return {
+		info: (message: string) => {
+			ctx.log.info(prefixer(message));
+		},
+		warn: (message: string) => {
+			ctx.log.warn(prefixer(message));
+		},
+		error: (message: string) => {
+			ctx.log.error(prefixer(message));
+		},
+		debug: (message: string) => {
+			ctx.log.debug(prefixer(message));
+		},
+	} as Logger;
+};
 
 export default (app: Probot) => {
 	// Pull request comments are just issue comments with code
@@ -26,10 +47,13 @@ export default (app: Probot) => {
 
 			const { owner, repo } = ctx.repo();
 
-			const withPrefix = (message: string) =>
-				`[basejump/${owner}/${repo}/pr-${issue.number}] ${message}`;
+			const logger = loggerWithPrefix(
+				ctx,
+				(message) =>
+					`[basejump/${owner}/${repo}/pr-${issue.number}] ${message}`,
+			);
 
-			ctx.log.info(withPrefix('Received rebase request'));
+			logger.info('Received rebase request');
 
 			let eyesReactionId: number | undefined;
 
@@ -43,7 +67,7 @@ export default (app: Probot) => {
 				eyesReactionId = id;
 
 				// No need to rebase if branch already up to date with base branch
-				ctx.log.info(withPrefix('Checking rebase necessity'));
+				logger.info('Checking rebase necessity');
 
 				const { data: pr } = await ctx.octokit.pulls.get({
 					...ctx.repo(),
@@ -59,20 +83,18 @@ export default (app: Probot) => {
 
 				// Branch isn't behind base, so no rebase needed
 				if (behind_by === 0) {
-					ctx.log.warn(
-						withPrefix('PR is already up to date with base branch, exiting'),
-					);
+					logger.warn('PR is already up to date with base branch, exiting');
 					await createIssueCommentReaction(ctx, comment.id, 'confused');
 					return;
 				}
 
-				ctx.log.info(withPrefix('Proceeding with rebase'));
+				logger.info('Proceeding with rebase');
 
 				// Rebase locally with git
 				const remoteUri = ctx.payload.repository.clone_url;
 				const featBranch = pr.head.ref;
 				const baseBranch = pr.base.ref;
-				await rebase(remoteUri, featBranch, baseBranch);
+				await rebase(remoteUri, featBranch, baseBranch, logger);
 
 				// Notify success with rocket emoji
 				await createIssueCommentReaction(ctx, comment.id, 'rocket');
@@ -90,22 +112,18 @@ export default (app: Probot) => {
 						body: messageParts.join('\n\n'),
 					});
 
-					ctx.log.error(withPrefix(messageParts.join(' ')));
+					logger.error(messageParts.join(' '));
 				} else if (error instanceof RemoteChangedError) {
-					ctx.log.error(
-						withPrefix(
-							'Failed to rebase: branch changes detected since rebase was triggered',
-						),
+					logger.error(
+						'Failed to rebase: branch changes detected since rebase was triggered',
 					);
 				} else if (isHttpError(error)) {
 					const {
 						response: { data },
 					} = error;
-					ctx.log.error(
-						withPrefix(`Failed to rebase: ${JSON.stringify(data, null, 2)}`),
-					);
+					logger.error(`Failed to rebase: ${JSON.stringify(data, null, 2)}`);
 				} else {
-					ctx.log.error(withPrefix(`Failed to rebase: ${error}`));
+					logger.error(`Failed to rebase: ${error}`);
 				}
 
 				// Notify error with confused emoji
@@ -121,7 +139,7 @@ export default (app: Probot) => {
 				}
 
 				const duration = Date.now() - startTime;
-				ctx.log.info(withPrefix(`Completed in ${duration}ms`));
+				logger.info(`Completed in ${duration}ms`);
 			}
 		},
 	);
