@@ -1,4 +1,13 @@
-import { describe, beforeEach, afterEach, test, expect, vi } from 'vitest';
+import {
+	describe,
+	beforeEach,
+	afterEach,
+	beforeAll,
+	afterAll,
+	test,
+	expect,
+	vi,
+} from 'vitest';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
@@ -63,6 +72,49 @@ async function listCommits(git: SimpleGit, branch: string) {
 
 describe('git rebase', () => {
 	let tempDir: string;
+	// TODO: This is unnecessary if we run tests in Docker
+	let priorGitIdentity: { name: string; email: string };
+
+	// Set global git identity for GH actions test env
+	beforeAll(async () => {
+		// TODO: Storing prior git identity is unnecessary if we run tests in Docker
+		// It's only necessary to prevent overwriting global identity in dev environments
+		priorGitIdentity = {
+			name: (await simpleGit().raw('config', '--global', 'user.name')).trim(),
+			email: (await simpleGit().raw('config', '--global', 'user.email')).trim(),
+		};
+
+		// Set git identity for tests
+		await simpleGit().raw(
+			'config',
+			'--global',
+			'user.name',
+			'Basejump Bot (Global)',
+		);
+		await simpleGit().raw(
+			'config',
+			'--global',
+			'user.email',
+			'basejump.global@balena.io',
+		);
+	});
+
+	// Restore git identity after tests
+	// TODO: This resetting of git global identity is unnecessary if we run tests in Docker
+	afterAll(async () => {
+		await simpleGit().raw(
+			'config',
+			'--global',
+			'user.name',
+			priorGitIdentity.name,
+		);
+		await simpleGit().raw(
+			'config',
+			'--global',
+			'user.email',
+			priorGitIdentity.email,
+		);
+	});
 
 	beforeEach(async () => {
 		// Setup up different temp test directory per assertion to avoid conflicts
