@@ -172,6 +172,14 @@ describe('basejump', () => {
 				behind_by: 2,
 				total_commits: 1,
 			})
+			// Get commit verification statuses
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.reply(200, [
+				{
+					sha: 'head-sha',
+					commit: { verification: { verified: true, reason: 'valid' } },
+				},
+			])
 			// This is where the rebase takes place, but it's mocked here so there are no network calls
 			// React to rebase success
 			.post(
@@ -193,6 +201,21 @@ describe('basejump', () => {
 		});
 
 		expect(rebaseMock).toHaveBeenCalledOnce();
+		// Don't assert on the logger that's passed to rebase as it's not relevant
+		const firstFourCallArgs = rebaseMock.mock.calls[0].slice(0, 4);
+		expect(firstFourCallArgs).toEqual([
+			'https://x-access-token:test@github.com/balena-user/github-app-test.git',
+			'feature',
+			'main',
+			expect.arrayContaining([
+				'user.name=Basejump Test Bot',
+				'user.email=basejump-test@balena.io',
+				'committer.name=Basejump Test Bot',
+				'committer.email=basejump-test@balena.io',
+				'commit.gpgsign=true',
+				'user.signingkey=deadbeef',
+			]),
+		]);
 		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 
@@ -220,6 +243,14 @@ describe('basejump', () => {
 				behind_by: 2,
 				total_commits: 1,
 			})
+			// Get commit verification statuses
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.reply(200, [
+				{
+					sha: 'head-sha',
+					commit: { verification: { verified: true, reason: 'valid' } },
+				},
+			])
 			// This is where the rebase takes place, but it's mocked here so there are no network calls
 			// React to rebase success
 			.post(
@@ -241,6 +272,21 @@ describe('basejump', () => {
 		});
 
 		expect(rebaseMock).toHaveBeenCalledOnce();
+		// Don't assert on the logger that's passed to rebase as it's not relevant
+		const firstFourCallArgs = rebaseMock.mock.calls[0].slice(0, 4);
+		expect(firstFourCallArgs).toEqual([
+			'https://x-access-token:test@github.com/balena-user/github-app-test.git',
+			'feature',
+			'main',
+			expect.arrayContaining([
+				'user.name=Basejump Test Bot',
+				'user.email=basejump-test@balena.io',
+				'committer.name=Basejump Test Bot',
+				'committer.email=basejump-test@balena.io',
+				'commit.gpgsign=true',
+				'user.signingkey=deadbeef',
+			]),
+		]);
 		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 
@@ -271,6 +317,14 @@ describe('basejump', () => {
 				behind_by: 2,
 				total_commits: 1,
 			})
+			// Get commit verification statuses
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.reply(200, [
+				{
+					sha: 'head-sha',
+					commit: { verification: { verified: true, reason: 'valid' } },
+				},
+			])
 			// This is where the rebase takes place, but it's mocked here so there are no network calls
 			// Notify of rebase failure
 			.post(
@@ -292,6 +346,21 @@ describe('basejump', () => {
 		});
 
 		expect(rebaseMock).toHaveBeenCalledOnce();
+		// Don't assert on the logger that's passed to rebase as it's not relevant
+		const firstFourCallArgs = rebaseMock.mock.calls[0].slice(0, 4);
+		expect(firstFourCallArgs).toEqual([
+			'https://x-access-token:test@github.com/balena-user/github-app-test.git',
+			'feature',
+			'main',
+			expect.arrayContaining([
+				'user.name=Basejump Test Bot',
+				'user.email=basejump-test@balena.io',
+				'committer.name=Basejump Test Bot',
+				'committer.email=basejump-test@balena.io',
+				'commit.gpgsign=true',
+				'user.signingkey=deadbeef',
+			]),
+		]);
 		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 
@@ -324,6 +393,14 @@ describe('basejump', () => {
 				behind_by: 2,
 				total_commits: 1,
 			})
+			// Get commit verification statuses
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.reply(200, [
+				{
+					sha: 'head-sha',
+					commit: { verification: { verified: true, reason: 'valid' } },
+				},
+			])
 			// This is where the rebase takes place, but it's mocked here so there are no network calls
 			// Create a comment on the PR with the code conflict error
 			.post(
@@ -358,6 +435,21 @@ describe('basejump', () => {
 		});
 
 		expect(rebaseMock).toHaveBeenCalledOnce();
+		// Don't assert on the logger that's passed to rebase as it's not relevant
+		const firstFourCallArgs = rebaseMock.mock.calls[0].slice(0, 4);
+		expect(firstFourCallArgs).toEqual([
+			'https://x-access-token:test@github.com/balena-user/github-app-test.git',
+			'feature',
+			'main',
+			expect.arrayContaining([
+				'user.name=Basejump Test Bot',
+				'user.email=basejump-test@balena.io',
+				'committer.name=Basejump Test Bot',
+				'committer.email=basejump-test@balena.io',
+				'commit.gpgsign=true',
+				'user.signingkey=deadbeef',
+			]),
+		]);
 		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 
@@ -396,6 +488,262 @@ describe('basejump', () => {
 		});
 
 		expect(rebaseMock).not.toHaveBeenCalled();
+		expect(githubMock.pendingMocks()).toHaveLength(0);
+	});
+
+	test('handles rebase with multiple verified commits', async () => {
+		// Mock rebase success
+		rebaseMock.mockResolvedValue(undefined);
+
+		const githubMock = nock('https://api.github.com')
+			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
+			.reply(200, { token: 'test' })
+			// Initial eyes reaction
+			.post(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+			)
+			.reply(201, { id: EYES_REACTION_ID })
+			// Get PR (feature)
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
+			.reply(200, {
+				number: PR_NUMBER,
+				base: { ref: 'main', sha: 'base-sha' },
+				head: { ref: 'feature', sha: 'head-sha-3' },
+			})
+			// Compare branches, with behind_by indicating a rebase is required
+			.get('/repos/balena-user/github-app-test/compare/main...feature')
+			.reply(200, {
+				status: 'diverged',
+				ahead_by: 3,
+				behind_by: 2,
+				total_commits: 3,
+			})
+			// Get commit verification statuses for multiple commits
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.reply(200, [
+				{
+					sha: 'head-sha-1',
+					commit: { verification: { verified: true, reason: 'valid' } },
+				},
+				{
+					sha: 'head-sha-2',
+					commit: { verification: { verified: true, reason: 'valid' } },
+				},
+				{
+					sha: 'head-sha-3',
+					commit: { verification: { verified: true, reason: 'valid' } },
+				},
+			])
+			// This is where the rebase takes place, but it's mocked here so there are no network calls
+			// React to rebase success
+			.post(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+				{
+					content: 'rocket',
+				},
+			)
+			.reply(201)
+			// Delete eyes reaction
+			.delete(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions/${EYES_REACTION_ID}`,
+			)
+			.reply(204);
+
+		await probot.receive({
+			name: 'issue_comment',
+			payload,
+		});
+
+		expect(rebaseMock).toHaveBeenCalledOnce();
+		// Don't assert on the logger that's passed to rebase as it's not relevant
+		const firstFourCallArgs = rebaseMock.mock.calls[0].slice(0, 4);
+		expect(firstFourCallArgs).toEqual([
+			'https://x-access-token:test@github.com/balena-user/github-app-test.git',
+			'feature',
+			'main',
+			expect.arrayContaining([
+				'committer.name=Basejump Test Bot',
+				'committer.email=basejump-test@balena.io',
+				'commit.gpgsign=true',
+				'user.signingkey=deadbeef',
+			]),
+		]);
+		expect(githubMock.pendingMocks()).toHaveLength(0);
+	});
+
+	test('handles rebase with multiple unverified commits', async () => {
+		// Mock rebase success
+		rebaseMock.mockResolvedValue(undefined);
+
+		const githubMock = nock('https://api.github.com')
+			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
+			.reply(200, { token: 'test' })
+			// Initial eyes reaction
+			.post(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+			)
+			.reply(201, { id: EYES_REACTION_ID })
+			// Get PR (feature)
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
+			.reply(200, {
+				number: PR_NUMBER,
+				base: { ref: 'main', sha: 'base-sha' },
+				head: { ref: 'feature', sha: 'head-sha-3' },
+			})
+			// Compare branches, with behind_by indicating a rebase is required
+			.get('/repos/balena-user/github-app-test/compare/main...feature')
+			.reply(200, {
+				status: 'diverged',
+				ahead_by: 3,
+				behind_by: 2,
+				total_commits: 3,
+			})
+			// Get commit verification statuses for multiple unverified commits
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.reply(200, [
+				{
+					sha: 'head-sha-1',
+					commit: { verification: { verified: false, reason: 'invalid' } },
+				},
+				{
+					sha: 'head-sha-2',
+					commit: { verification: { verified: false, reason: 'unsigned' } },
+				},
+				{
+					sha: 'head-sha-3',
+					commit: { verification: { verified: false, reason: 'unknown_key' } },
+				},
+			])
+			// This is where the rebase takes place, but it's mocked here so there are no network calls
+			// React to rebase success
+			.post(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+				{
+					content: 'rocket',
+				},
+			)
+			.reply(201)
+			// Delete eyes reaction
+			.delete(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions/${EYES_REACTION_ID}`,
+			)
+			.reply(204);
+
+		await probot.receive({
+			name: 'issue_comment',
+			payload,
+		});
+
+		expect(rebaseMock).toHaveBeenCalledOnce();
+		// Don't assert on the logger that's passed to rebase as it's not relevant
+		const firstFourCallArgs = rebaseMock.mock.calls[0].slice(0, 4);
+		expect(firstFourCallArgs).toEqual([
+			'https://x-access-token:test@github.com/balena-user/github-app-test.git',
+			'feature',
+			'main',
+			// When commits are unverified, GPG signing should be disabled
+			expect.arrayContaining([
+				'user.name=Basejump Test Bot',
+				'user.email=basejump-test@balena.io',
+				'committer.name=Basejump Test Bot',
+				'committer.email=basejump-test@balena.io',
+				'commit.gpgsign=false',
+			]),
+		]);
+		// Verify that GPG signing options are NOT included when commits are unverified
+		const gitConfig = firstFourCallArgs[3];
+		expect(gitConfig).not.toContain('commit.gpgsign=true');
+		expect(gitConfig).not.toContain('user.signingkey=deadbeef');
+		expect(githubMock.pendingMocks()).toHaveLength(0);
+	});
+
+	test('handles rebase with mixed verified and unverified commits', async () => {
+		// Mock rebase success
+		rebaseMock.mockResolvedValue(undefined);
+
+		const githubMock = nock('https://api.github.com')
+			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
+			.reply(200, { token: 'test' })
+			// Initial eyes reaction
+			.post(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+			)
+			.reply(201, { id: EYES_REACTION_ID })
+			// Get PR (feature)
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
+			.reply(200, {
+				number: PR_NUMBER,
+				base: { ref: 'main', sha: 'base-sha' },
+				head: { ref: 'feature', sha: 'head-sha-4' },
+			})
+			// Compare branches, with behind_by indicating a rebase is required
+			.get('/repos/balena-user/github-app-test/compare/main...feature')
+			.reply(200, {
+				status: 'diverged',
+				ahead_by: 4,
+				behind_by: 2,
+				total_commits: 4,
+			})
+			// Get commit verification statuses with mixed verification states
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.reply(200, [
+				{
+					sha: 'head-sha-1',
+					commit: { verification: { verified: true, reason: 'valid' } },
+				},
+				{
+					sha: 'head-sha-2',
+					commit: { verification: { verified: false, reason: 'unsigned' } },
+				},
+				{
+					sha: 'head-sha-3',
+					commit: { verification: { verified: true, reason: 'valid' } },
+				},
+				{
+					sha: 'head-sha-4',
+					commit: { verification: { verified: false, reason: 'unknown_key' } },
+				},
+			])
+			// This is where the rebase takes place, but it's mocked here so there are no network calls
+			// React to rebase success
+			.post(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+				{
+					content: 'rocket',
+				},
+			)
+			.reply(201)
+			// Delete eyes reaction
+			.delete(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions/${EYES_REACTION_ID}`,
+			)
+			.reply(204);
+
+		await probot.receive({
+			name: 'issue_comment',
+			payload,
+		});
+
+		expect(rebaseMock).toHaveBeenCalledOnce();
+		// Don't assert on the logger that's passed to rebase as it's not relevant
+		const firstFourCallArgs = rebaseMock.mock.calls[0].slice(0, 4);
+		expect(firstFourCallArgs).toEqual([
+			'https://x-access-token:test@github.com/balena-user/github-app-test.git',
+			'feature',
+			'main',
+			// When some commits are unverified, GPG signing should be disabled
+			expect.arrayContaining([
+				'user.name=Basejump Test Bot',
+				'user.email=basejump-test@balena.io',
+				'committer.name=Basejump Test Bot',
+				'committer.email=basejump-test@balena.io',
+				'commit.gpgsign=false',
+			]),
+		]);
+		// Verify that GPG signing is explicitly disabled and signing key is not included
+		const gitConfig = firstFourCallArgs[3];
+		expect(gitConfig).not.toContain('commit.gpgsign=true');
+		expect(gitConfig).not.toContain('user.signingkey=deadbeef');
 		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
 });

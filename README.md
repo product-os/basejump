@@ -24,14 +24,16 @@ To trigger a rebase, simply comment on a pull request with:
 
 3. **Rebase Necessity Check**: Basejump checks if rebasing is necessary by comparing the PR branch with its base branch. If the PR branch is already up-to-date, it adds a confused reaction (😕) and exits.
 
-4. **Local Git Rebase**: If rebasing is needed, Basejump:
+4. **Commit Verification**: Basejump queries the verification statuses of the commits in the pull request. If all the commits are verified by GitHub (i.e. authored/committed & signed by a key that matches an identity known to GitHub), Basejump will sign the rebased commits using its service account key. However, if ANY commit cannot be verified by GitHub, Basejump will not sign any commits during rebase.
+
+5. **Local Git Rebase**: If rebasing is needed, Basejump:
    - Clones the repository to a temporary directory
    - Checks out the feature branch
    - Performs a native `git rebase` operation
    - Force-pushes the rebased branch using `--force-with-lease` for safety
    - Cleans up the temporary directory
 
-5. **Result Notification**: Upon completion, Basejump adds:
+6. **Result Notification**: Upon completion, Basejump adds:
    - A rocket reaction (🚀) for successful rebases
    - A confused reaction (😕) for failures
    - An explanatory comment for code conflicts that require manual resolution
@@ -85,8 +87,37 @@ The following environment variables are required:
 docker build -t basejump .
 
 # 2. Run container with environment variables
-docker run -e APP_ID=<app-id> -e PRIVATE_KEY=<pem-value> basejump
+docker run \
+  -e APP_ID=<app-id> \
+  -e PRIVATE_KEY=<pem-value> \
+  basejump
 ```
+
+### GPG Commit Signing
+
+Basejump signs commit if all the commits in the pull request are verified by GitHub. Additional setup is required:
+
+```sh
+# Run with GPG signing enabled
+docker run \
+  -e APP_ID=<app-id> \
+  -e PRIVATE_KEY=<pem-value> \
+  -e GPG_KEY_FILE=/usr/src/app/gpg-key.asc \
+  -v ./your-gpg-key.asc:/usr/src/app/gpg-key.asc:ro \
+  basejump
+```
+
+**GPG Setup Process (`setup.sh`):**
+The container automatically runs `setup.sh` on startup which:
+1. Creates GPG configuration files (`~/.gnupg/gpg.conf`)
+2. Imports the passwordless GPG private key from a volume with, with path set to env var `$GPG_KEY_FILE`
+3. Sets ultimate trust on the imported key
+4. Exports the `KEY_ID` environment variable for use by the app
+
+**Required GPG Environment Variables:**
+- `GPG_KEY_FILE`: Container path to the passwordless GPG private key file (must be mounted into container)
+- `GIT_COMMITTER_NAME`: Name for git commits
+- `GIT_COMMITTER_EMAIL`: Email for git commits
 
 ## Development
 
@@ -102,7 +133,6 @@ npm run lint
 # Fix linting issues
 npm run lint:fix
 ```
-
 ## Contributing
 
 If you have suggestions for how basejump could be improved, or want to report a bug, open an issue! We'd love all and any contributions.

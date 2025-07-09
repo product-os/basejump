@@ -12,19 +12,24 @@ import { CodeConflictError, RemoteChangedError } from './errors.js';
  * @param remoteUri - URI to clone the repository from, e.g. `https://github.com/owner/repo.git`
  * @param featBranch - Branch to be rebased, e.g. `feature`
  * @param baseBranch - Branch to rebase onto, e.g. `main`
+ * @param gitConfig - Git config to use when initializing git client
+ * @param logger - Logger instance
  * @returns Promise that resolves when rebase is complete
  */
 export default async function run(
 	remoteUri: string,
 	featBranch: string,
 	baseBranch: string,
+	gitConfig: string[],
 	logger?: Logger,
 ): Promise<void> {
 	// Create a temp dir to clone the repo into
 	const workingDir = await mkdtemp(join(tmpdir(), `basejump-${Date.now()}-`));
 
-	// Initialize a git client with working dir as the base dir
-	const git = simpleGit(workingDir);
+	// Initialize a git client with provided git config
+	const git = simpleGit(workingDir, {
+		config: gitConfig,
+	});
 
 	try {
 		// Since rebase is triggered by a GitHub issue comment event on a PR
@@ -33,8 +38,12 @@ export default async function run(
 		// clone nor checkout are expected to fail. Although there is a chance
 		// that the remote feature branch is deleted right after the rebase is
 		// triggered but before the checkout is performed, this is extremely unlikely.
-		logger?.debug(`Cloning ${remoteUri}`);
+		logger?.debug(
+			// Obfuscate the token from the remote URI for logging
+			`Cloning ${remoteUri.replace(/https:\/\/x-access-token:.*@/, 'https://github.com/')}`,
+		);
 		await git.clone(remoteUri, workingDir);
+
 		logger?.debug(`Checking out ${featBranch}`);
 		await git.checkout(featBranch);
 
@@ -59,10 +68,15 @@ export default async function run(
  * @returns boolean indicating whether a rebase was performed
  * @throws CodeConflictError if a conflict is detected during rebase
  */
-async function doRebase(git: SimpleGit, baseBranch: string): Promise<boolean> {
+export async function doRebase(
+	git: SimpleGit,
+	baseBranch: string,
+): Promise<boolean> {
 	// Rebase onto base branch
 	try {
-		const message = await git.rebase([baseBranch]);
+		const rebaseArgs = [baseBranch];
+
+		const message = await git.rebase(rebaseArgs);
 		if (message.match(/^Current branch .* is up to date/)) {
 			return false;
 		}
@@ -84,9 +98,15 @@ async function forcePushWithLease(git: SimpleGit, branch: string) {
 	} catch (error: unknown) {
 		if (
 			error instanceof Error &&
-			error.message.includes('[rejected] (stale info)')
+			// Local git detected the ref change
+			(error.message.includes('[rejected] (stale info)') ||
+				// Remote rejected the push due to ref change
+				new RegExp(`is at [a-f0-9]{40} but expected [a-f0-9]{40}`).test(
+					error.message,
+				))
 		) {
 			throw new RemoteChangedError(error.message);
 		}
+		throw error; // Re-throw the error otherwise
 	}
 }

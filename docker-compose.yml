@@ -1,0 +1,15 @@
+services:
+  basejump:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    stop_grace_period: 3s
+    ports:
+      - 3000:3000
+    env_file:
+      - .env
+    # volumes:
+      # Mount the private key file into the container for testing
+      # - ./your-private-key.pem:/usr/src/app/private-key.pem:ro
+      # Mount the GPG key file into the container
+      # - ./test-gpg-key.asc:/usr/src/app/test-gpg-key.asc:ro

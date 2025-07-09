@@ -8,5 +8,10 @@ export default defineConfig({
 		},
 		testTimeout: 30000,
 		watch: false,
+		env: {
+			GIT_COMMITTER_NAME: 'Basejump Test Bot',
+			GIT_COMMITTER_EMAIL: 'basejump-test@balena.io',
+			KEY_ID: 'deadbeef',
+		},
 	},
 });

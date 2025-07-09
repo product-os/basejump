@@ -1,6 +1,10 @@
 import type { Probot, Context, Logger } from 'probot';
 
-import { createIssueCommentReaction } from './github.js';
+import {
+	createIssueCommentReaction,
+	areCommitsVerified,
+	getInstallationToken,
+} from './github.js';
 import {
 	isCodeConflictError,
 	isHttpError,
@@ -63,6 +67,7 @@ export default (app: Probot) => {
 					ctx,
 					comment.id,
 					'eyes',
+					logger,
 				);
 				eyesReactionId = id;
 
@@ -84,20 +89,61 @@ export default (app: Probot) => {
 				// Branch isn't behind base, so no rebase needed
 				if (behind_by === 0) {
 					logger.warn('PR is already up to date with base branch, exiting');
-					await createIssueCommentReaction(ctx, comment.id, 'confused');
+					await createIssueCommentReaction(ctx, comment.id, 'confused', logger);
 					return;
 				}
 
 				logger.info('Proceeding with rebase');
 
-				// Rebase locally with git
-				const remoteUri = ctx.payload.repository.clone_url;
+				// Get the installation token
+				const authToken = await getInstallationToken(ctx);
+				if (!authToken) {
+					logger.error('Failed to retrieve auth token, aborting rebase');
+					await createIssueCommentReaction(ctx, comment.id, 'confused', logger);
+					return;
+				}
+
+				// For each commit, get verification status
+				const shouldSignDuringRebase = await areCommitsVerified(ctx, logger);
+
+				if (!shouldSignDuringRebase) {
+					logger.warn(
+						'Not all commits are verified. Proceeding with rebase without signing commits',
+					);
+				} else {
+					logger.info(
+						'All commits are verified. Proceeding with rebase with signed commits',
+					);
+				}
+
+				// Set up options for local rebase
+				// Use authenticated URI for HTTPS-based git clone
+				const remoteUri = ctx.payload.repository.clone_url.replace(
+					'https://',
+					`https://x-access-token:${authToken}@`,
+				);
 				const featBranch = pr.head.ref;
 				const baseBranch = pr.base.ref;
-				await rebase(remoteUri, featBranch, baseBranch, logger);
+				const gitConfig = [
+					`user.name=${process.env.GIT_COMMITTER_NAME}`,
+					`user.email=${process.env.GIT_COMMITTER_EMAIL}`,
+					`committer.name=${process.env.GIT_COMMITTER_NAME}`,
+					`committer.email=${process.env.GIT_COMMITTER_EMAIL}`,
+				];
+
+				// If all commits are verified, sign them during rebase
+				if (shouldSignDuringRebase && process.env.KEY_ID) {
+					gitConfig.push('commit.gpgsign=true');
+					gitConfig.push(`user.signingkey=${process.env.KEY_ID}`);
+				} else {
+					gitConfig.push('commit.gpgsign=false');
+				}
+
+				// Rebase locally with git
+				await rebase(remoteUri, featBranch, baseBranch, gitConfig, logger);
 
 				// Notify success with rocket emoji
-				await createIssueCommentReaction(ctx, comment.id, 'rocket');
+				await createIssueCommentReaction(ctx, comment.id, 'rocket', logger);
 			} catch (error) {
 				if (isCodeConflictError(error)) {
 					// Only notify user of rebase failure on code conflict,
@@ -121,13 +167,13 @@ export default (app: Probot) => {
 					const {
 						response: { data },
 					} = error;
-					logger.error(`Failed to rebase: ${JSON.stringify(data, null, 2)}`);
+					logger.error(`Failed to rebase: ${JSON.stringify(data)}`);
 				} else {
 					logger.error(`Failed to rebase: ${error}`);
 				}
 
 				// Notify error with confused emoji
-				await createIssueCommentReaction(ctx, comment.id, 'confused');
+				await createIssueCommentReaction(ctx, comment.id, 'confused', logger);
 			} finally {
 				// Remove stale reaction regardless of success or failure
 				if (eyesReactionId) {

@@ -109,7 +109,7 @@ describe('git rebase', () => {
 		expect(f2).toMatch(/Add 2/);
 
 		// Rebase the feature branch onto main
-		await rebase(remoteRepoPath, feat, 'main');
+		await rebase(remoteRepoPath, feat, 'main', []);
 
 		// Assert that:
 		// - feature branch has 3 commits, 'Add 0', 'Add 1', and 'Add 2'
@@ -171,7 +171,7 @@ describe('git rebase', () => {
 		expect(f6).toMatch(/Add 6/);
 
 		// Rebase the feature branch onto main
-		await rebase(remoteRepoPath, feat, 'main');
+		await rebase(remoteRepoPath, feat, 'main', []);
 
 		// Assert that:
 		// - feature branch has 7 commits
@@ -232,7 +232,7 @@ describe('git rebase', () => {
 		// Rebase the feature branch onto main
 		// Assert that the conflict sha in the CodeConflictError is the same as the conflict sha in the rebase error
 		try {
-			await rebase(remoteRepoPath, feat, 'main');
+			await rebase(remoteRepoPath, feat, 'main', []);
 			expect.fail('Expected rebase to throw CodeConflictError');
 		} catch (error: any) {
 			expect(error).toBeInstanceOf(CodeConflictError);
@@ -270,7 +270,7 @@ describe('git rebase', () => {
 
 		// Attempt to rebase should throw CodeConflictError
 		try {
-			await rebase(remoteRepoPath, feat, 'main');
+			await rebase(remoteRepoPath, feat, 'main', []);
 			expect.fail('Expected rebase to throw CodeConflictError');
 		} catch (error: any) {
 			expect(error).toBeInstanceOf(CodeConflictError);
@@ -312,7 +312,7 @@ describe('git rebase', () => {
 
 		// Attempt to rebase should throw CodeConflictError
 		try {
-			await rebase(remoteRepoPath, feat, 'main');
+			await rebase(remoteRepoPath, feat, 'main', []);
 			expect.fail('Expected rebase to throw CodeConflictError');
 		} catch (error: any) {
 			expect(error).toBeInstanceOf(CodeConflictError);
@@ -350,7 +350,7 @@ describe('git rebase', () => {
 
 		// Attempt to rebase should throw CodeConflictError
 		try {
-			await rebase(remoteRepoPath, feat, 'main');
+			await rebase(remoteRepoPath, feat, 'main', []);
 			expect.fail('Expected rebase to throw CodeConflictError');
 		} catch (error: any) {
 			expect(error).toBeInstanceOf(CodeConflictError);
@@ -372,7 +372,7 @@ describe('git rebase', () => {
 		expect(mainCommits).toEqual(featCommits);
 
 		// Rebase should complete successfully without doing anything
-		await rebase(remoteRepoPath, feat, 'main');
+		await rebase(remoteRepoPath, feat, 'main', []);
 
 		// Both branches should still have the same commits
 		const mainCommitsAfter = await listCommits(remoteGit, 'main');
@@ -424,7 +424,10 @@ describe('git rebase', () => {
 			await localGit.push('origin', feat);
 		};
 		try {
-			await Promise.all([rebase(remoteRepoPath, feat, 'main'), updateRemote()]);
+			await Promise.all([
+				updateRemote(),
+				rebase(remoteRepoPath, feat, 'main', []),
+			]);
 			expect.fail(
 				'Expected rebase to throw error due to force-with-lease failure',
 			);
@@ -481,7 +484,7 @@ describe('git rebase', () => {
 		expect(mergeCommit).toBeDefined();
 
 		// Rebase feature branch onto main
-		await rebase(remoteRepoPath, feat, 'main');
+		await rebase(remoteRepoPath, feat, 'main', []);
 
 		// Assert that merge commit is dropped
 		const featCommitsAfter = await listCommits(remoteGit, feat);
@@ -546,7 +549,7 @@ describe('git rebase', () => {
 		expect(cherryPickedCommit).toBeDefined();
 
 		// Rebase feature branch onto main
-		await rebase(remoteRepoPath, feat, 'main');
+		await rebase(remoteRepoPath, feat, 'main', []);
 
 		// Assert that the cherry-picked commit is skipped during rebase
 		const featCommitsAfter = await listCommits(remoteGit, feat);
@@ -611,7 +614,7 @@ describe('git rebase', () => {
 		expect(emptyCommit).toBeDefined();
 
 		// Rebase feature branch onto main
-		await rebase(remoteRepoPath, feat, 'main');
+		await rebase(remoteRepoPath, feat, 'main', []);
 
 		// Assert that intentionally empty commit is preserved during rebase
 		const featCommitsAfter = await listCommits(remoteGit, feat);
@@ -658,7 +661,7 @@ describe('git rebase', () => {
 		const workingDirBefore = await fs.readdir(os.tmpdir());
 
 		// Perform rebase (should succeed)
-		await rebase(remoteRepoPath, feat, 'main');
+		await rebase(remoteRepoPath, feat, 'main', []);
 
 		// Assert that working directory was cleaned up
 		expect(await fs.readdir(os.tmpdir())).toEqual(workingDirBefore);
@@ -688,7 +691,7 @@ describe('git rebase', () => {
 
 		// Perform rebase (should fail with conflict)
 		try {
-			await rebase(remoteRepoPath, feat, 'main');
+			await rebase(remoteRepoPath, feat, 'main', []);
 			expect.fail('Expected rebase to throw CodeConflictError');
 		} catch (error: any) {
 			expect(error).toBeInstanceOf(CodeConflictError);
@@ -697,4 +700,52 @@ describe('git rebase', () => {
 		// Assert that working directory was cleaned up even on error
 		expect(await fs.readdir(os.tmpdir())).toEqual(workingDirBefore);
 	});
+
+	// GPG options are passed through git config, so this tests that configs are applied for rebase
+	test('should apply git config options during rebase', async () => {
+		const { localGit, localRepoPath, remoteGit, remoteRepoPath } =
+			await setupRemote(tempDir);
+
+		// Create a commit on main
+		await createCommit({ repoPath: localRepoPath, filename: '1' });
+		await localGit.push('origin', 'main');
+
+		// Create a feature branch from initial commit
+		const feat = 'feature';
+		await localGit.checkoutBranch(feat, 'main^');
+		await createCommit({
+			repoPath: localRepoPath,
+			filename: '2',
+			branch: feat,
+		});
+		await localGit.push('origin', feat);
+
+		// Define git config with user.name and user.email
+		const gitConfig = [
+			`committer.name=${process.env.GIT_COMMITTER_NAME}`,
+			`committer.email=${process.env.GIT_COMMITTER_EMAIL}`,
+		];
+
+		// Perform rebase with git config
+		await rebase(remoteRepoPath, feat, 'main', gitConfig);
+
+		// Fetch latest from remote feature branch and verify committer
+		// See: https://git-scm.com/docs/git-log
+		const featCommits = await remoteGit.log([
+			feat,
+			'--format=%h %s / Committer: %cn <%ce>',
+		]);
+		const commits = featCommits.latest?.hash.split('\n');
+		expect(commits).toHaveLength(3);
+		expect(commits![0]).toMatch(
+			/^[a-f0-9]{7} Add 2 \/ Committer: Basejump Test Bot <basejump-test@balena.io>/,
+		);
+	});
+
+	// TODO: this is hard to set up as it requires a test GPG key be created for testing
+	// and revoked after testing, and should be done in a containerized environment in case
+	// the test env does not have GPG installed.
+	test.todo(
+		'should sign commits if commit.gpgsign=true and user.signingkey is set',
+	);
 });
