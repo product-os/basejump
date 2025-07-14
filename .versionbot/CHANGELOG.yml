@@ -1,4 +1,16 @@
 - commits:
+    - subject: Lock file maintenance
+      hash: 8066a52b806cb3eaa3c43eb651e490faf4a76079
+      body: |
+        Update 
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+  version: 0.2.1
+  title: ""
+  date: 2025-07-14T19:17:18.506Z
+- commits:
     - subject: Sign commits using GPG if all commits are cryptographically verified by
         GitHub
       hash: 2a74ba2ffdce6759fc9f27dd1b993ed5aa88c25c
