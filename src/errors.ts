@@ -17,11 +17,9 @@ export const isHttpError = (
 // Use a specific error to indicate an error is due to code conflict,
 // as opposed to other endpoints which might throw 409s for other reasons.
 export class CodeConflictError extends Error {
-	public statusCode: number;
 	public commitSha: string;
 	constructor(message: string, commitSha: string) {
 		super(message);
-		this.statusCode = 409;
 		this.commitSha = commitSha;
 	}
 }
@@ -29,6 +27,6 @@ export class CodeConflictError extends Error {
 export const isCodeConflictError = (
 	error: unknown,
 ): error is CodeConflictError =>
-	error instanceof CodeConflictError &&
-	error.statusCode === 409 &&
-	typeof error.commitSha === 'string';
+	error instanceof CodeConflictError && typeof error.commitSha === 'string';
+
+export class RemoteChangedError extends Error {}

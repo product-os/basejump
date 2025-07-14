@@ -1,7 +1,5 @@
-import type { Context } from 'probot';
+import type { Context, Logger } from 'probot';
 import type { Endpoints } from '@octokit/types';
-
-import { isHttpError, CodeConflictError } from './errors.js';
 
 /**
  * Create a reaction to an issue comment
@@ -15,6 +13,7 @@ export const createIssueCommentReaction = async (
 	ctx: Context,
 	commentId: number,
 	content: Endpoints['POST /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions']['parameters']['content'],
+	logger: Logger,
 ) => {
 	const { status, data } = await ctx.octokit.reactions.createForIssueComment({
 		...ctx.repo(),
@@ -23,230 +22,76 @@ export const createIssueCommentReaction = async (
 	});
 
 	if (status === 200) {
-		ctx.log.warn(`Already reacted with ${content} emoji to issue comment`);
+		logger.warn(`Already reacted with ${content} emoji to issue comment`);
 	}
 
 	return data;
 };
 
-/**
- * Create a commit
- *
- * See: https://docs.github.com/en/rest/git/commits?apiVersion=2022-11-28#create-a-commit
- */
-const createCommit = async (
-	ctx: Context,
-	opts: Partial<{
-		author: { name: string; email: string };
-		committer: { name: string; email: string };
-		message: string;
-		parents: string[];
-		tree: string;
-	}>,
-) => {
-	const { data } = await ctx.octokit.git.createCommit({
-		...ctx.repo(),
-		...opts,
-	});
-
-	return data;
-};
-
-/**
- * Merge a commit into a branch using branch base ref and commit SHA,
- * then return the tree SHA
- *
- * See: https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#merge-a-branch
- */
-const merge = async (
-	ctx: Context,
-	{
-		base,
-		commit,
-	}: {
-		base: string;
-		commit: string;
-	},
-) => {
+export const areCommitsVerified = async (
+	ctx: Context<'issue_comment.created'>,
+	logger: Logger,
+): Promise<boolean> => {
 	try {
-		const {
-			data: {
-				commit: {
-					tree: { sha: tree },
-				},
-			},
-		} = await ctx.octokit.repos.merge({
+		// Get all commits for the PR
+		const { data: commits } = await ctx.octokit.rest.pulls.listCommits({
 			...ctx.repo(),
-			base,
-			head: commit,
-			commit_message: `Merge ${commit} into ${base}`,
+			pull_number: ctx.payload.issue.number,
 		});
 
-		return tree;
-	} catch (error) {
-		if (!isHttpError(error)) {
-			throw error;
+		// Split commits into verified and unverified
+		const verifiedCommits: typeof commits = [];
+		const unverifiedCommits: typeof commits = [];
+		for (const commit of commits) {
+			if (
+				commit.commit.verification?.verified &&
+				commit.commit.verification?.reason === 'valid'
+			) {
+				verifiedCommits.push(commit);
+			} else {
+				unverifiedCommits.push(commit);
+			}
 		}
 
-		if (error.status === 409) {
-			throw new CodeConflictError(
-				`Merge conflict while merging ${commit} into ${base}`,
-				commit,
+		// For each unverified commit, log the reason
+		for (const { sha, commit } of unverifiedCommits) {
+			logger.warn(
+				`Commit ${sha} is unverified with reason "${commit.verification?.reason}"`,
 			);
 		}
 
-		throw new Error(
-			`Failed to merge ${commit} into ${base} with status ${error.status}`,
+		// Only return true if there are no unverified commits
+		return unverifiedCommits.length === 0;
+	} catch (error) {
+		logger.error(
+			`Error checking commits: ${error instanceof Error ? error.message : error}. Proceeding as if commits are unverified`,
 		);
+		// If any API error, proceed as if commits are unverified
+		return false;
 	}
 };
 
 /**
- * Cherry-pick a commit onto a branch
- *
- * See: https://stackoverflow.com/questions/53859199/how-to-cherry-pick-through-githubs-api
+ * Get the installation token for the GitHub app
+ * @param ctx - The context object
+ * @returns The installation token
  */
-const cherryPickCommit = async (
-	ctx: Context,
-	{
-		commitSha,
-		branch,
-	}: {
-		commitSha: string;
-		branch: { ref: string; sha: string; tree: string };
-	},
-) => {
-	// Get to-be-rebased commit details
-	const {
-		data: { parents, author, committer, message },
-	} = await ctx.octokit.git.getCommit({
-		...ctx.repo(),
-		commit_sha: commitSha,
+export const getInstallationToken = async (
+	ctx: Context<'issue_comment.created'>,
+): Promise<string | null> => {
+	const installationToken = await ctx.octokit.auth({
+		type: 'installation',
+		installationId: ctx.payload.installation?.id,
 	});
 
-	if (parents.length > 1) {
-		throw new Error(
-			`Commit ${commitSha} is a merge commit and cannot be cherry-picked`,
-		);
+	// The returned installation token is of type `unknown`
+	if (
+		typeof installationToken === 'object' &&
+		installationToken !== null &&
+		'token' in installationToken &&
+		typeof installationToken.token === 'string'
+	) {
+		return installationToken.token;
 	}
-
-	// Create "tip of tree" sibling commit to trick git into merging a tree of size 1
-	const siblingCommit = await createCommit(ctx, {
-		author,
-		message: `Temp sibling of ${commitSha}`,
-		parents: [parents[0].sha],
-		tree: branch.tree,
-	});
-
-	// Update ref to sibling commit
-	await ctx.octokit.git.updateRef({
-		...ctx.repo(),
-		ref: `heads/${branch.ref}`,
-		sha: siblingCommit.sha,
-		force: true,
-	});
-
-	// Merge to-be-rebased commit onto branch
-	const tree = await merge(ctx, {
-		base: branch.ref,
-		commit: commitSha,
-	});
-
-	// Cherry-pick commit with original message
-	const newHead = await createCommit(ctx, {
-		author,
-		committer,
-		message,
-		parents: [branch.sha],
-		tree,
-	});
-
-	// Update ref to final commit
-	await ctx.octokit.git.updateRef({
-		...ctx.repo(),
-		ref: `heads/${branch.ref}`,
-		sha: newHead.sha,
-		force: true,
-	});
-
-	return { sha: newHead.sha, tree: newHead.tree };
-};
-
-export const rebase = async (
-	ctx: Context,
-	pr: Endpoints['GET /repos/{owner}/{repo}/pulls/{pull_number}']['response']['data'],
-) => {
-	const tempBranchName = `basejump/rebase-pr-${pr.number}-${Date.now()}`;
-	try {
-		// Fetch base SHA in case pr.base.sha is outdated
-		const {
-			data: {
-				sha: baseSha,
-				commit: {
-					tree: { sha: baseTree },
-				},
-			},
-		} = await ctx.octokit.repos.getCommit({
-			...ctx.repo(),
-			ref: pr.base.ref,
-		});
-
-		// Get all commits from PR
-		const { data: commits } = await ctx.octokit.pulls.listCommits({
-			...ctx.repo(),
-			pull_number: pr.number,
-		});
-
-		// Create temp branch from base commit
-		await ctx.octokit.git.createRef({
-			...ctx.repo(),
-			ref: `refs/heads/${tempBranchName}`,
-			sha: baseSha,
-		});
-
-		// Cherry-pick each commit
-		let currentSha = baseSha;
-		let currentTree = baseTree;
-
-		for (const commit of commits) {
-			const result = await cherryPickCommit(ctx, {
-				commitSha: commit.sha,
-				branch: {
-					ref: tempBranchName,
-					sha: currentSha,
-					tree: currentTree,
-				},
-			});
-			currentSha = result.sha;
-			currentTree = result.tree.sha;
-		}
-
-		// Abort the rebase if PR HEAD SHA has changed,
-		// such as if a change to the feature branch was made since the rebase was started
-		const {
-			data: {
-				head: { sha: headSha },
-			},
-		} = await ctx.octokit.pulls.get({
-			...ctx.repo(),
-			pull_number: pr.number,
-		});
-		if (headSha !== pr.head.sha) {
-			throw new Error('Feature branch HEAD SHA has changed, aborting rebase');
-		}
-
-		// Update PR branch with rebased commits
-		await ctx.octokit.git.updateRef({
-			...ctx.repo(),
-			ref: `heads/${pr.head.ref}`,
-			sha: currentSha,
-			force: true,
-		});
-	} finally {
-		// Regardless of success or failure, clean up temp branch
-		await ctx.octokit.git.deleteRef({
-			...ctx.repo(),
-			ref: `heads/${tempBranchName}`,
-		});
-	}
+	return null;
 };
