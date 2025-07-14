@@ -1,4 +1,27 @@
 - commits:
+    - subject: Sign commits using GPG if all commits are cryptographically verified by
+        GitHub
+      hash: 2a74ba2ffdce6759fc9f27dd1b993ed5aa88c25c
+      body: ""
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+    - subject: Switch to local git rebase
+      hash: 241bb1b169e406190844c589d1b218d8710246fe
+      body: ""
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+  version: 0.2.0
+  title: ""
+  date: 2025-07-14T18:40:01.358Z
+- commits:
     - subject: Abort if feature branch HEAD sha has changed
       hash: 84e5381b5e16e0d27e3f5fc3bcd8dce56a2ef3aa
       body: |
