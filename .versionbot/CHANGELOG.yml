@@ -1,4 +1,17 @@
 - commits:
+    - subject: Log commit current author & committer details
+      hash: 17935e8a637d2cca6ec4e26b35238e791f5cb737
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+  version: 0.2.2
+  title: ""
+  date: 2025-07-16T19:13:13.005Z
+- commits:
     - subject: Lock file maintenance
       hash: 8066a52b806cb3eaa3c43eb651e490faf4a76079
       body: |
