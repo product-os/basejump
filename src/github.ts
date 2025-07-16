@@ -40,24 +40,28 @@ export const areCommitsVerified = async (
 		});
 
 		// Split commits into verified and unverified
-		const verifiedCommits: typeof commits = [];
-		const unverifiedCommits: typeof commits = [];
-		for (const commit of commits) {
-			if (
-				commit.commit.verification?.verified &&
-				commit.commit.verification?.reason === 'valid'
-			) {
-				verifiedCommits.push(commit);
-			} else {
-				unverifiedCommits.push(commit);
-			}
-		}
-
-		// For each unverified commit, log the reason
-		for (const { sha, commit } of unverifiedCommits) {
-			logger.warn(
-				`Commit ${sha} is unverified with reason "${commit.verification?.reason}"`,
+		const verifiedCommits = [];
+		const unverifiedCommits = [];
+		for (const { sha, commit } of commits) {
+			// Log each commit's current author and committer
+			logger.info(
+				`Processing commit: ${JSON.stringify({
+					sha,
+					author: commit.author,
+					committer: commit.committer,
+				})}`,
 			);
+			if (
+				commit.verification?.verified &&
+				commit.verification?.reason === 'valid'
+			) {
+				verifiedCommits.push({ sha, commit });
+			} else {
+				logger.warn(
+					`Commit ${sha} is unverified with reason "${commit.verification?.reason}"`,
+				);
+				unverifiedCommits.push({ sha, commit });
+			}
 		}
 
 		// Only return true if there are no unverified commits
