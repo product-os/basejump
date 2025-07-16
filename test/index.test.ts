@@ -177,7 +177,17 @@ describe('basejump', () => {
 			.reply(200, [
 				{
 					sha: 'head-sha',
-					commit: { verification: { verified: true, reason: 'valid' } },
+					commit: {
+						verification: { verified: true, reason: 'valid' },
+						author: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+						committer: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+					},
 				},
 			])
 			// This is where the rebase takes place, but it's mocked here so there are no network calls
@@ -248,7 +258,17 @@ describe('basejump', () => {
 			.reply(200, [
 				{
 					sha: 'head-sha',
-					commit: { verification: { verified: true, reason: 'valid' } },
+					commit: {
+						verification: { verified: true, reason: 'valid' },
+						author: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+						committer: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+					},
 				},
 			])
 			// This is where the rebase takes place, but it's mocked here so there are no network calls
@@ -322,7 +342,17 @@ describe('basejump', () => {
 			.reply(200, [
 				{
 					sha: 'head-sha',
-					commit: { verification: { verified: true, reason: 'valid' } },
+					commit: {
+						verification: { verified: true, reason: 'valid' },
+						author: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+						committer: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+					},
 				},
 			])
 			// This is where the rebase takes place, but it's mocked here so there are no network calls
@@ -398,7 +428,17 @@ describe('basejump', () => {
 			.reply(200, [
 				{
 					sha: 'head-sha',
-					commit: { verification: { verified: true, reason: 'valid' } },
+					commit: {
+						verification: { verified: true, reason: 'valid' },
+						author: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+						committer: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+					},
 				},
 			])
 			// This is where the rebase takes place, but it's mocked here so there are no network calls
@@ -523,15 +563,45 @@ describe('basejump', () => {
 			.reply(200, [
 				{
 					sha: 'head-sha-1',
-					commit: { verification: { verified: true, reason: 'valid' } },
+					commit: {
+						verification: { verified: true, reason: 'valid' },
+						author: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+						committer: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+					},
 				},
 				{
 					sha: 'head-sha-2',
-					commit: { verification: { verified: true, reason: 'valid' } },
+					commit: {
+						verification: { verified: true, reason: 'valid' },
+						author: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+						committer: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+					},
 				},
 				{
 					sha: 'head-sha-3',
-					commit: { verification: { verified: true, reason: 'valid' } },
+					commit: {
+						verification: { verified: true, reason: 'valid' },
+						author: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+						committer: {
+							name: 'Basejump Test Bot 2',
+							email: 'basejump-test-2@balena.io',
+						},
+					},
 				},
 			])
 			// This is where the rebase takes place, but it's mocked here so there are no network calls
@@ -603,15 +673,45 @@ describe('basejump', () => {
 			.reply(200, [
 				{
 					sha: 'head-sha-1',
-					commit: { verification: { verified: false, reason: 'invalid' } },
+					commit: {
+						verification: { verified: false, reason: 'invalid' },
+						author: {
+							name: 'Untrusted Author',
+							email: 'untrusted-author@balena.io',
+						},
+						committer: {
+							name: 'Untrusted Committer',
+							email: 'untrusted-committer@balena.io',
+						},
+					},
 				},
 				{
 					sha: 'head-sha-2',
-					commit: { verification: { verified: false, reason: 'unsigned' } },
+					commit: {
+						verification: { verified: false, reason: 'unsigned' },
+						author: {
+							name: 'Unsigned Author',
+							email: 'unsigned-author@balena.io',
+						},
+						committer: {
+							name: 'Unsigned Committer',
+							email: 'unsigned-committer@balena.io',
+						},
+					},
 				},
 				{
 					sha: 'head-sha-3',
-					commit: { verification: { verified: false, reason: 'unknown_key' } },
+					commit: {
+						verification: { verified: false, reason: 'unknown_key' },
+						author: {
+							name: 'Unknown Key Author',
+							email: 'unknown-key-author@balena.io',
+						},
+						committer: {
+							name: 'Unknown Key Committer',
+							email: 'unknown-key-committer@balena.io',
+						},
+					},
 				},
 			])
 			// This is where the rebase takes place, but it's mocked here so there are no network calls
@@ -689,19 +789,59 @@ describe('basejump', () => {
 			.reply(200, [
 				{
 					sha: 'head-sha-1',
-					commit: { verification: { verified: true, reason: 'valid' } },
+					commit: {
+						verification: { verified: true, reason: 'valid' },
+						author: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+						committer: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+					},
 				},
 				{
 					sha: 'head-sha-2',
-					commit: { verification: { verified: false, reason: 'unsigned' } },
+					commit: {
+						verification: { verified: false, reason: 'unsigned' },
+						author: {
+							name: 'Unsigned Author',
+							email: 'unsigned-author@balena.io',
+						},
+						committer: {
+							name: 'Unsigned Committer',
+							email: 'unsigned-committer@balena.io',
+						},
+					},
 				},
 				{
 					sha: 'head-sha-3',
-					commit: { verification: { verified: true, reason: 'valid' } },
+					commit: {
+						verification: { verified: true, reason: 'valid' },
+						author: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+						committer: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+					},
 				},
 				{
 					sha: 'head-sha-4',
-					commit: { verification: { verified: false, reason: 'unknown_key' } },
+					commit: {
+						verification: { verified: false, reason: 'unknown_key' },
+						author: {
+							name: 'Unknown Key Author',
+							email: 'unknown-key-author@balena.io',
+						},
+						committer: {
+							name: 'Unknown Key Committer',
+							email: 'unknown-key-committer@balena.io',
+						},
+					},
 				},
 			])
 			// This is where the rebase takes place, but it's mocked here so there are no network calls
