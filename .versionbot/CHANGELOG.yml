@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update dependency picomatch to v4.0.3
+      hash: 7de79ce3aa3e6feed441724797c45c48425cc345
+      body: |
+        Update picomatch from 4.0.2 to 4.0.3
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+  version: 0.2.3
+  title: ""
+  date: 2025-07-18T20:08:48.318Z
+- commits:
     - subject: Log commit current author & committer details
       hash: 17935e8a637d2cca6ec4e26b35238e791f5cb737
       body: ""
