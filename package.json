@@ -37,7 +37,7 @@
     "vitest": "^3.2.4"
   },
   "overrides": {
-    "picomatch": "4.0.2"
+    "picomatch": "4.0.3"
   },
   "engines": {
     "node": ">= 18"
