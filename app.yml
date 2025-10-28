@@ -100,6 +100,10 @@ default_permissions:
   # https://developer.github.com/v3/apps/permissions/#permission-on-statuses
   # statuses: read
 
+  # Actions workflows and jobs.
+  # https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps#repository-permissions-for-workflows
+  workflows: write
+
   # Organization members and teams.
   # https://developer.github.com/v3/apps/permissions/#permission-on-members
   # members: read
