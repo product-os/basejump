@@ -1,4 +1,16 @@
 - commits:
+    - subject: Lock file maintenance
+      hash: 087286a2eea0616c0e98d3eb86243352f9d0cbc2
+      body: |
+        Update 
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+  version: 0.2.5
+  title: ""
+  date: 2025-10-29T19:24:10.369Z
+- commits:
     - subject: Allow the app to write workflow files
       hash: 44a1bfa5c0674911ef06eca441da1aa3122af671
       body: |
