@@ -1,4 +1,25 @@
 - commits:
+    - subject: Allow the app to write workflow files
+      hash: 44a1bfa5c0674911ef06eca441da1aa3122af671
+      body: |
+        New installations of the app installed from manifest
+        should have the workflow:write permission.
+
+        Otherwise, PRs with modifications to workflow files
+        will fail to rebase.
+
+        Existing app installations will need to add this permission
+        manually.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Kyle Harding <kyle@balena.io>
+        signed-off-by: Kyle Harding <kyle@balena.io>
+      author: Kyle Harding
+  version: 0.2.4
+  title: ""
+  date: 2025-10-29T18:34:57.814Z
+- commits:
     - subject: Update dependency picomatch to v4.0.3
       hash: 7de79ce3aa3e6feed441724797c45c48425cc345
       body: |
