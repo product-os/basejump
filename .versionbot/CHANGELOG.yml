@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update dependency flowzonify to v0.4.4
+      hash: 38143e65e337f833a06c5bb62ce8d22309dd5a6e
+      body: |
+        Update flowzonify from 0.0.0 to 0.4.4
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+  version: 0.2.6
+  title: ""
+  date: 2026-09-03T11:09:05.011Z
+- commits:
     - subject: Lock file maintenance
       hash: 087286a2eea0616c0e98d3eb86243352f9d0cbc2
       body: |
