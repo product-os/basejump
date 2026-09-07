@@ -22,7 +22,7 @@
     "prepare": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module"
   },
   "dependencies": {
-    "probot": "^13.4.5",
+    "probot": "^14.0.0",
     "simple-git": "^3.28.0",
     "typescript": "^5.8.3"
   },
