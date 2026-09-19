@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@balena/lint": "^9.3.1",
-    "@types/node": "^24.0.10",
+    "@types/node": "^24.9.2",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
     "nock": "^14.0.5",
