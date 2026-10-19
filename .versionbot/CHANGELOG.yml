@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update dependency vitest to v4 [SECURITY]
+      hash: 930c05066d4ce5eac466f9569cdd5975e676d5bd
+      body: |
+        Update vitest from 3.2.7 to 4.1.11
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+  version: 0.2.12
+  title: ""
+  date: 2026-10-19T14:53:54.220Z
+- commits:
     - subject: Update dependency simple-git to v4 [SECURITY]
       hash: d0f0757a5e35fe9f754597f048f4f9e69d12f5f7
       body: |
