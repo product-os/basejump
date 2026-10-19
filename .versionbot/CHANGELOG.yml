@@ -1,4 +1,16 @@
 - commits:
+    - subject: Lock file maintenance
+      hash: 179b1837815a038a614a7f80ce8b5b625a1f9cf7
+      body: |
+        Update 
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+  version: 0.2.10
+  title: ""
+  date: 2026-10-19T13:10:54.308Z
+- commits:
     - subject: Update dependency picomatch to v4.0.4 [SECURITY]
       hash: 0369f3718669322e386ba66db396c3a6c48c8526
       body: |
