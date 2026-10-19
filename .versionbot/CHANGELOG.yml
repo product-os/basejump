@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update Node.js to v24
+      hash: 388b3d56dac452b07362b95890670e7664747f40
+      body: |
+        Update node from 22.23.3 to 24.22.0
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+  version: 0.2.8
+  title: ""
+  date: 2026-10-19T11:30:07.439Z
+- commits:
     - subject: Specify `npm >= 11` to avoid CI issues with npm 10
       hash: a26c8171c064565a74e0cc41218c7a279c56ca24
       body: ""
