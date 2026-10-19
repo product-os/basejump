@@ -1,4 +1,16 @@
 - commits:
+    - subject: Pin dependencies
+      hash: 7af9085e5964cdc8372146bab7183b5e5e8e780c
+      body: |
+        Update @types/node
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+  version: 0.2.13
+  title: ""
+  date: 2026-10-19T16:17:54.273Z
+- commits:
     - subject: Update dependency vitest to v4 [SECURITY]
       hash: 930c05066d4ce5eac466f9569cdd5975e676d5bd
       body: |
