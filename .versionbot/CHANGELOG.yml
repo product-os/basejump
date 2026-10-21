@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update dependency nock to v15
+      hash: 0fbf7c7a6a43854343e8896562f5f17aa129e86a
+      body: |
+        Update nock from 14.0.17 to 15.0.2
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+  version: 0.2.16
+  title: ""
+  date: 2026-10-21T14:09:20.467Z
+- commits:
     - subject: Update dependency lint-staged to v17
       hash: d38a1b9e738a6c909a727027f9e1f094c614928d
       body: |
