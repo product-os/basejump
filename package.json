@@ -33,7 +33,7 @@
     "lint-staged": "17.6.0",
     "nock": "15.0.2",
     "rimraf": "6.1.3",
-    "smee-client": "4.4.3",
+    "smee-client": "5.0.0",
     "vitest": "4.1.12"
   },
   "overrides": {
