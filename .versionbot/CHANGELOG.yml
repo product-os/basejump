@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update Node.js to a9f5f7c
+      hash: ddfb140e5e8f514a1180a8df3ef5289244591ab7
+      body: |
+        Update node
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+  version: 0.2.14
+  title: ""
+  date: 2026-10-21T13:06:37.481Z
+- commits:
     - subject: Pin dependencies
       hash: 7af9085e5964cdc8372146bab7183b5e5e8e780c
       body: |
