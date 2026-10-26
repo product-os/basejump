@@ -497,6 +497,45 @@ describe('git rebase', () => {
 		expect(featCommits).toEqual([featCommits[0], d1, d0]);
 	});
 
+	test('should rebase feature branch named the same as a top-level directory', async () => {
+		const { localGit, localRepoPath, remoteGit, remoteRepoPath } =
+			await setupRemote(tempDir);
+
+		// Create a commit on main which adds a top-level `docs` directory
+		await fs.mkdir(path.join(localRepoPath, 'docs'));
+		await createCommit({ repoPath: localRepoPath, filename: 'docs/1' });
+		await localGit.push('origin', 'main');
+
+		// Create a `docs` feature branch from one commit older than main
+		const feat = 'docs';
+		await localGit.checkoutBranch(feat, 'main^');
+		await fs.mkdir(path.join(localRepoPath, 'docs'), { recursive: true });
+		await createCommit({
+			repoPath: localRepoPath,
+			filename: 'docs/2',
+			branch: feat,
+		});
+		await localGit.push('origin', feat);
+
+		const [m1] = await listCommits(remoteGit, 'main');
+		const [f2] = await listCommits(remoteGit, feat);
+
+		// Rebase the feature branch onto main
+		await rebase(
+			remoteRepoPath,
+			feat,
+			await headSha(remoteRepoPath, feat),
+			'main',
+			[],
+		);
+
+		// Feature branch should now have main's latest commit under its own
+		const featCommits = await listCommits(remoteGit, feat);
+		expect(featCommits[0]).not.toEqual(f2);
+		expect(featCommits[0]).toMatch(/Add docs\/2/);
+		expect(featCommits[1]).toEqual(m1);
+	});
+
 	test('should handle case where no rebase is necessary', async () => {
 		const { localGit, remoteGit, remoteRepoPath } = await setupRemote(tempDir);
 
