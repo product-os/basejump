@@ -41,7 +41,7 @@ To trigger a rebase, simply comment on a pull request with:
 ## Implementation Details
 
 - **Framework**: Built as a GitHub App using the [Probot](https://probot.github.io/) framework
-- **Language**: TypeScript with ES modules
+- **Language**: TypeScript with ES modules, run directly with [Node.js type stripping](https://nodejs.org/api/typescript.html#type-stripping) (Node.js >= 24)
 - **Git Operations**: Uses [simple-git](https://github.com/steveukx/git-js) library for native git operations
 - **Safety**: Uses `--force-with-lease` to prevent overwriting concurrent changes
 
@@ -61,9 +61,6 @@ To trigger a rebase, simply comment on a pull request with:
 ```sh
 # Install dependencies
 npm ci
-
-# Build the project
-npm run build
 
 # Run tests
 npm test

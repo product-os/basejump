@@ -13,14 +13,14 @@ import {
 	vi,
 } from 'vitest';
 
-import app from '../src/index.js';
-import rebase from '../src/rebase.js';
-import { CodeConflictError, RemoteChangedError } from '../src/errors.js';
+import app from '../src/index.ts';
+import rebase from '../src/rebase.ts';
+import { CodeConflictError, RemoteChangedError } from '../src/errors.ts';
 import payload from './fixtures/issue_comment.created.pull_request.json' with { type: 'json' };
 
 // Mock the rebase module, as it's unit tested elsewhere
 // and its network calls are not easy to mock in this test file
-vi.mock('../src/rebase.js', () => ({
+vi.mock('../src/rebase.ts', () => ({
 	default: vi.fn(),
 }));
 

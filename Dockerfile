@@ -21,8 +21,6 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY . ./
 COPY scripts/setup.sh ./setup.sh
 
-RUN npm run build
-
 # Copy GPG configuration files to ~/.gnupg and GPG cache refresh script to /usr/local/bin
 RUN mkdir -p ~/.gnupg && \
     cp scripts/gpg.conf ~/.gnupg/gpg.conf && \
