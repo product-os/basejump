@@ -11,12 +11,34 @@ import {
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
-import { setTimeout } from 'node:timers/promises';
 import type { SimpleGit } from 'simple-git';
 import { simpleGit } from 'simple-git';
 
 import rebase from '../src/rebase.js';
 import { CodeConflictError, RemoteChangedError } from '../src/errors.js';
+
+// Run a callback right before the next push, to simulate the remote branch
+// being updated by someone else while a rebase is in progress
+const beforeNextPush = vi.hoisted(() => ({
+	callback: undefined as (() => Promise<void>) | undefined,
+}));
+vi.mock('simple-git', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('simple-git')>();
+	return {
+		...actual,
+		simpleGit: (...args: Parameters<typeof actual.simpleGit>) => {
+			const git = actual.simpleGit(...args);
+			const push = git.push.bind(git);
+			git.push = (async (...pushArgs: Parameters<typeof push>) => {
+				const { callback } = beforeNextPush;
+				beforeNextPush.callback = undefined;
+				await callback?.();
+				return await push(...pushArgs);
+			}) as typeof git.push;
+			return git;
+		},
+	};
+});
 
 // Create a "remote" repo with an initial commit
 async function setupRemote(tmpDir: string) {
@@ -414,70 +436,84 @@ describe('git rebase', () => {
 		expect(featCommitsAfter).toEqual(featCommits);
 	});
 
-	// TODO: This test relies on a race condition where the timing is hard to nail.
-	// Rebase clones, checks out, rebases, and pushes in the same function, so there's a tiny window between
-	// checkout and rebase in which we can push a change to the remote to trigger a remote changed error.
-	// We don't want to modify the rebase function to add a delay, as modifying functionality for tests is
-	// a bad practice. While the functionality described here has been tested to work manually,
-	// this test case requires more thought into its design to make sure it passes reliably.
-	test.todo(
-		'should throw error when pushing with --force-with-lease fails due to remote branch update',
-		async () => {
-			const { localGit, localRepoPath, remoteRepoPath } =
-				await setupRemote(tempDir);
+	test('should throw RemoteChangedError if the remote branch is updated before pushing', async () => {
+		const { localGit, localRepoPath, remoteGit, remoteRepoPath } =
+			await setupRemote(tempDir);
 
-			// Mock git rebase to wait 2 seconds before rebasing
-			// TODO: this doesn't actually get called, so the rebase function doesn't wait 2 seconds.
-			vi.mock('simple-git', async (importOriginal: any) => {
-				const actual = await importOriginal();
-				return {
-					...actual,
-					rebase: vi.fn().mockImplementation(async (...args) => {
-						await setTimeout(2000);
-						return actual.rebase(...args);
-					}),
-				};
-			});
+		// Create a commit on main
+		await createCommit({ repoPath: localRepoPath, filename: '1' });
+		await localGit.push('origin', 'main');
 
-			// Create a commit on main
-			await createCommit({ repoPath: localRepoPath, filename: '1' });
-			await localGit.push('origin', 'main');
+		// Create a feature branch from initial commit with a commit on it
+		const feat = 'feature';
+		await localGit.checkoutBranch(feat, 'main^');
+		await createCommit({
+			repoPath: localRepoPath,
+			filename: '2',
+			branch: feat,
+		});
+		await localGit.push('origin', feat);
 
-			// Create a feature branch from initial commit
-			const feat = 'feature';
-			await localGit.checkoutBranch(feat, 'main^');
-
-			// Create a commit on feature branch
+		// Push another commit to the feature branch after it has been rebased,
+		// but before the rebased branch is pushed
+		beforeNextPush.callback = async () => {
 			await createCommit({
 				repoPath: localRepoPath,
-				filename: '2',
+				filename: '3',
 				branch: feat,
 			});
 			await localGit.push('origin', feat);
+		};
 
-			// Attempt rebase which should wait 2 seconds before rebasing, which
-			// gives this test process time to update the remote branch between rebase & push
-			const updateRemote = async () => {
-				await createCommit({
-					repoPath: localRepoPath,
-					filename: '3',
-					branch: feat,
-				});
-				await localGit.push('origin', feat);
-			};
-			try {
-				await Promise.all([
-					updateRemote(),
-					rebase(remoteRepoPath, feat, 'main', []),
-				]);
-				expect.fail(
-					'Expected rebase to throw error due to force-with-lease failure',
-				);
-			} catch (error: any) {
-				expect(error).toBeInstanceOf(RemoteChangedError);
-			}
-		},
-	);
+		await expect(rebase(remoteRepoPath, feat, 'main', [])).rejects.toThrow(
+			RemoteChangedError,
+		);
+
+		// The concurrently pushed commit should not have been overwritten
+		const [f3] = await listCommits(remoteGit, feat);
+		expect(f3).toMatch(/Add 3/);
+	});
+
+	test('should throw RemoteChangedError if the remote branch is updated while pushing', async () => {
+		const { localGit, localRepoPath, remoteGit, remoteRepoPath } =
+			await setupRemote(tempDir);
+
+		// Create a commit on main
+		await createCommit({ repoPath: localRepoPath, filename: '1' });
+		await localGit.push('origin', 'main');
+
+		// Create a feature branch from initial commit with a commit on it
+		const feat = 'feature';
+		await localGit.checkoutBranch(feat, 'main^');
+		await createCommit({
+			repoPath: localRepoPath,
+			filename: '2',
+			branch: feat,
+		});
+		await localGit.push('origin', feat);
+
+		// Update the feature branch on the remote once the push has been
+		// received, i.e. after the push checked the lease against the remote ref
+		const mainSha = (await remoteGit.revparse('main')).trim();
+		const hookPath = path.join(remoteRepoPath, 'hooks', 'pre-receive');
+		await fs.writeFile(
+			hookPath,
+			[
+				'#!/bin/sh',
+				// Ref updates are otherwise forbidden while the push is received
+				'unset GIT_QUARANTINE_PATH',
+				`git update-ref refs/heads/${feat} ${mainSha}`,
+			].join('\n'),
+		);
+		await fs.chmod(hookPath, 0o755);
+
+		await expect(rebase(remoteRepoPath, feat, 'main', [])).rejects.toThrow(
+			RemoteChangedError,
+		);
+
+		// The concurrent update should not have been overwritten
+		expect((await remoteGit.revparse(feat)).trim()).toEqual(mainSha);
+	});
 
 	test('should drop merge commits (default git behavior)', async () => {
 		const { localGit, localRepoPath, remoteGit, remoteRepoPath } =
