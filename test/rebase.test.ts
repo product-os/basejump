@@ -744,6 +744,30 @@ describe('git rebase', () => {
 		expect(await fs.readdir(os.tmpdir())).toEqual(workingDirBefore);
 	});
 
+	test('should not log the credentials of the remote URI', async () => {
+		const logger = {
+			debug: vi.fn(),
+			info: vi.fn(),
+			warn: vi.fn(),
+			error: vi.fn(),
+		};
+
+		// Nothing listens on this port, so the clone fails after it's logged
+		await expect(
+			rebase(
+				'https://x-access-token:secret-token@127.0.0.1:9/owner/repo.git',
+				'feature',
+				'main',
+				[],
+				logger as any,
+			),
+		).rejects.toThrow();
+
+		expect(logger.debug).toHaveBeenCalledWith(
+			'Cloning https://127.0.0.1:9/owner/repo.git',
+		);
+	});
+
 	// GPG options are passed through git config, so this tests that configs are applied for rebase
 	test('should apply git config options during rebase', async () => {
 		const { localGit, localRepoPath, remoteGit, remoteRepoPath } =

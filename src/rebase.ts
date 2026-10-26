@@ -39,8 +39,8 @@ export default async function run(
 		// that the remote feature branch is deleted right after the rebase is
 		// triggered but before the checkout is performed, this is extremely unlikely.
 		logger?.debug(
-			// Obfuscate the token from the remote URI for logging
-			`Cloning ${remoteUri.replace(/https:\/\/x-access-token:.*@/, 'https://github.com/')}`,
+			// Remove the credentials from the remote URI for logging
+			`Cloning ${remoteUri.replace(/^https:\/\/[^@/]*@/, 'https://')}`,
 		);
 		await git.clone(remoteUri, workingDir);
 
