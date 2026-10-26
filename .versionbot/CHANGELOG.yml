@@ -1,4 +1,20 @@
 - commits:
+    - subject: Rebase onto the remote base branch
+      hash: 06419c38bb6abccb3d6440b324b9799d03780213
+      body: |
+        A fresh clone only has a local branch for the repository's default
+        branch, so `git rebase <base>` failed with `fatal: invalid upstream`
+        for any pull request targeting a different branch (e.g. `develop` or
+        a release branch). Rebase onto `origin/<base>` instead, which also
+        always reflects the remote state for the default branch.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 0.2.22
+  title: ""
+  date: 2026-10-26T17:56:22.251Z
+- commits:
     - subject: Detect stale lease rejections from newer git servers
       hash: 9de8cc7f66934999018d63df1bc29b0280b98bb7
       body: |
