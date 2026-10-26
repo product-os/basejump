@@ -40,7 +40,7 @@
     "picomatch": "4.0.4"
   },
   "engines": {
-    "node": ">= 18",
+    "node": ">= 24",
     "npm": ">= 11"
   },
   "type": "module",
