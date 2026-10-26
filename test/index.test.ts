@@ -48,11 +48,17 @@ describe('basejump', () => {
 		probot = new Probot({
 			appId: 123,
 			privateKey,
-			// disable request throttling and retries for testing
-			Octokit: ProbotOctokit.defaults({
-				retry: { enabled: false },
-				throttle: { enabled: false },
-			}),
+			// Disable request throttling and retries for testing. Probot always
+			// passes its own `throttle` options, which replace any static default,
+			// so `enabled: false` has to be merged into them on each instantiation,
+			// otherwise every write request is delayed by a second.
+			Octokit: ProbotOctokit.defaults(
+				(options: ConstructorParameters<typeof ProbotOctokit>[0]) => ({
+					...options,
+					retry: { enabled: false },
+					throttle: { ...options?.throttle, enabled: false },
+				}),
+			),
 		});
 		probot.load(app);
 	});
