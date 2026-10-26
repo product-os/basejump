@@ -72,48 +72,29 @@ async function listCommits(git: SimpleGit, branch: string) {
 
 describe('git rebase', () => {
 	let tempDir: string;
-	// TODO: This is unnecessary if we run tests in Docker
-	let priorGitIdentity: { name: string; email: string };
+	let homeDir: string;
 
-	// Set global git identity for GH actions test env
+	// Give git a global identity for test commits, and isolate it from the
+	// developer's own global config, by pointing HOME to a temporary dir.
+	// simple-git strips GIT_* env vars from the git processes it spawns, so
+	// e.g. GIT_CONFIG_GLOBAL or GIT_AUTHOR_NAME can't be used instead.
 	beforeAll(async () => {
-		// TODO: Storing prior git identity is unnecessary if we run tests in Docker
-		// It's only necessary to prevent overwriting global identity in dev environments
-		priorGitIdentity = {
-			name: (await simpleGit().raw('config', '--global', 'user.name')).trim(),
-			email: (await simpleGit().raw('config', '--global', 'user.email')).trim(),
-		};
-
-		// Set git identity for tests
-		await simpleGit().raw(
-			'config',
-			'--global',
-			'user.name',
-			'Basejump Bot (Global)',
+		homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'rebase-test-home-'));
+		await fs.writeFile(
+			path.join(homeDir, '.gitconfig'),
+			[
+				'[user]',
+				'\tname = Basejump Bot (Global)',
+				'\temail = basejump.global@balena.io',
+			].join('\n'),
 		);
-		await simpleGit().raw(
-			'config',
-			'--global',
-			'user.email',
-			'basejump.global@balena.io',
-		);
+		vi.stubEnv('HOME', homeDir);
+		vi.stubEnv('XDG_CONFIG_HOME', path.join(homeDir, '.config'));
 	});
 
-	// Restore git identity after tests
-	// TODO: This resetting of git global identity is unnecessary if we run tests in Docker
 	afterAll(async () => {
-		await simpleGit().raw(
-			'config',
-			'--global',
-			'user.name',
-			priorGitIdentity.name,
-		);
-		await simpleGit().raw(
-			'config',
-			'--global',
-			'user.email',
-			priorGitIdentity.email,
-		);
+		vi.unstubAllEnvs();
+		await fs.rm(homeDir, { recursive: true });
 	});
 
 	beforeEach(async () => {
