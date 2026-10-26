@@ -413,6 +413,43 @@ describe('git rebase', () => {
 		}
 	});
 
+	test('should rebase onto a base branch that is not the default branch', async () => {
+		const { localGit, localRepoPath, remoteGit, remoteRepoPath } =
+			await setupRemote(tempDir);
+
+		// Create a non-default base branch with a commit on it
+		const base = 'develop';
+		await localGit.checkoutBranch(base, 'main');
+		await createCommit({
+			repoPath: localRepoPath,
+			filename: '1',
+			branch: base,
+		});
+		await localGit.push('origin', base);
+
+		// Create a feature branch from main with a commit on it
+		const feat = 'feature';
+		await localGit.checkoutBranch(feat, 'main');
+		await createCommit({
+			repoPath: localRepoPath,
+			filename: '2',
+			branch: feat,
+		});
+		await localGit.push('origin', feat);
+
+		const [d1, d0] = await listCommits(remoteGit, base);
+		const [f2] = await listCommits(remoteGit, feat);
+
+		// Rebase the feature branch onto the non-default base branch
+		await rebase(remoteRepoPath, feat, base, []);
+
+		// Feature branch should now have the base branch's commits under its own
+		const featCommits = await listCommits(remoteGit, feat);
+		expect(featCommits[0]).not.toEqual(f2);
+		expect(featCommits[0]).toMatch(/Add 2/);
+		expect(featCommits).toEqual([featCommits[0], d1, d0]);
+	});
+
 	test('should handle case where no rebase is necessary', async () => {
 		const { localGit, remoteGit, remoteRepoPath } = await setupRemote(tempDir);
 
