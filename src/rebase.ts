@@ -72,9 +72,10 @@ export async function doRebase(
 	git: SimpleGit,
 	baseBranch: string,
 ): Promise<boolean> {
-	// Rebase onto base branch
+	// Rebase onto the remote base branch, as a fresh clone only has a local
+	// branch for the repo's default branch
 	try {
-		const rebaseArgs = [baseBranch];
+		const rebaseArgs = [`origin/${baseBranch}`];
 
 		const message = await git.rebase(rebaseArgs);
 		if (message.match(/^Current branch .* is up to date/)) {
