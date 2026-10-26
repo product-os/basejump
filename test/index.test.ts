@@ -34,6 +34,7 @@ describe('basejump', () => {
 	const INSTALLATION_ID = payload.installation.id;
 	const COMMENT_ID = payload.comment.id;
 	const PR_NUMBER = payload.issue.number;
+	const COMMENTER = payload.comment.user.login;
 	const EYES_REACTION_ID = 123;
 
 	beforeAll(async () => {
@@ -110,6 +111,11 @@ describe('basejump', () => {
 			// Probot gets an auth token on our behalf
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
+			// Check the commenter's permission level
+			.get(
+				`/repos/balena-user/github-app-test/collaborators/${COMMENTER}/permission`,
+			)
+			.reply(200, { permission: 'write' })
 			// Initial eyes reaction on comment
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -161,6 +167,11 @@ describe('basejump', () => {
 		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
+			// Check the commenter's permission level
+			.get(
+				`/repos/balena-user/github-app-test/collaborators/${COMMENTER}/permission`,
+			)
+			.reply(200, { permission: 'write' })
 			// Initial eyes reaction
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -245,6 +256,11 @@ describe('basejump', () => {
 		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
+			// Check the commenter's permission level
+			.get(
+				`/repos/balena-user/github-app-test/collaborators/${COMMENTER}/permission`,
+			)
+			.reply(200, { permission: 'write' })
 			// Initial eyes reaction
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -332,6 +348,11 @@ describe('basejump', () => {
 		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
+			// Check the commenter's permission level
+			.get(
+				`/repos/balena-user/github-app-test/collaborators/${COMMENTER}/permission`,
+			)
+			.reply(200, { permission: 'write' })
 			// Initial eyes reaction
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -421,6 +442,11 @@ describe('basejump', () => {
 		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
+			// Check the commenter's permission level
+			.get(
+				`/repos/balena-user/github-app-test/collaborators/${COMMENTER}/permission`,
+			)
+			.reply(200, { permission: 'write' })
 			// Initial eyes reaction
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -518,6 +544,11 @@ describe('basejump', () => {
 		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
+			// Check the commenter's permission level
+			.get(
+				`/repos/balena-user/github-app-test/collaborators/${COMMENTER}/permission`,
+			)
+			.reply(200, { permission: 'write' })
 			// Initial eyes reaction
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -559,6 +590,11 @@ describe('basejump', () => {
 		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
+			// Check the commenter's permission level
+			.get(
+				`/repos/balena-user/github-app-test/collaborators/${COMMENTER}/permission`,
+			)
+			.reply(200, { permission: 'write' })
 			// Initial eyes reaction
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -672,6 +708,11 @@ describe('basejump', () => {
 		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
+			// Check the commenter's permission level
+			.get(
+				`/repos/balena-user/github-app-test/collaborators/${COMMENTER}/permission`,
+			)
+			.reply(200, { permission: 'write' })
 			// Initial eyes reaction
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -791,6 +832,11 @@ describe('basejump', () => {
 		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
+			// Check the commenter's permission level
+			.get(
+				`/repos/balena-user/github-app-test/collaborators/${COMMENTER}/permission`,
+			)
+			.reply(200, { permission: 'write' })
 			// Initial eyes reaction
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -924,6 +970,11 @@ describe('basejump', () => {
 		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
+			// Check the commenter's permission level
+			.get(
+				`/repos/balena-user/github-app-test/collaborators/${COMMENTER}/permission`,
+			)
+			.reply(200, { permission: 'write' })
 			// Initial eyes reaction
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -1024,6 +1075,11 @@ describe('basejump', () => {
 		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
+			// Check the commenter's permission level
+			.get(
+				`/repos/balena-user/github-app-test/collaborators/${COMMENTER}/permission`,
+			)
+			.reply(200, { permission: 'write' })
 			// Initial eyes reaction
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -1090,6 +1146,11 @@ describe('basejump', () => {
 		const githubMock = nock('https://api.github.com')
 			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
 			.reply(200, { token: 'test' })
+			// Check the commenter's permission level
+			.get(
+				`/repos/balena-user/github-app-test/collaborators/${COMMENTER}/permission`,
+			)
+			.reply(200, { permission: 'write' })
 			// Initial eyes reaction
 			.post(
 				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
@@ -1157,4 +1218,38 @@ describe('basejump', () => {
 		expect(gitConfig).not.toContain('user.signingkey=deadbeef');
 		expect(githubMock.pendingMocks()).toHaveLength(0);
 	});
+
+	test.each([
+		['read permission', 200, { permission: 'read' }],
+		['no permission', 200, { permission: 'none' }],
+		['no access', 404, { message: 'Not Found' }],
+	])(
+		'refuses to rebase for commenters with %s',
+		async (_description, status, permissionResponse) => {
+			const githubMock = nock('https://api.github.com')
+				.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
+				.reply(200, { token: 'test' })
+				// Check the commenter's permission level
+				.get(
+					`/repos/balena-user/github-app-test/collaborators/${COMMENTER}/permission`,
+				)
+				.reply(status, permissionResponse)
+				// React to the refused rebase request
+				.post(
+					`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+					{
+						content: 'confused',
+					},
+				)
+				.reply(201);
+
+			await probot.receive({
+				name: 'issue_comment',
+				payload,
+			});
+
+			expect(rebaseMock).not.toHaveBeenCalled();
+			expect(githubMock.pendingMocks()).toHaveLength(0);
+		},
+	);
 });

@@ -1,6 +1,8 @@
 import type { Context, Logger } from 'probot';
 import type { Endpoints } from '@octokit/types';
 
+import { isHttpError } from './errors.ts';
+
 /**
  * Create a reaction to an issue comment
  *
@@ -26,6 +28,35 @@ export const createIssueCommentReaction = async (
 	}
 
 	return data;
+};
+
+/**
+ * Check whether a user has write access to the repo, i.e. could push to its
+ * branches themselves.
+ *
+ * The maintain role is reported as `write`, and users without access may not
+ * be found at all.
+ *
+ * See: https://docs.github.com/en/rest/collaborators/collaborators#get-repository-permissions-for-a-user
+ */
+export const hasWriteAccess = async (
+	ctx: Context,
+	username: string,
+): Promise<boolean> => {
+	try {
+		const {
+			data: { permission },
+		} = await ctx.octokit.rest.repos.getCollaboratorPermissionLevel({
+			...ctx.repo(),
+			username,
+		});
+		return permission === 'admin' || permission === 'write';
+	} catch (error) {
+		if (isHttpError(error) && error.status === 404) {
+			return false;
+		}
+		throw error;
+	}
 };
 
 /**
