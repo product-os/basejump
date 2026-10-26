@@ -1,4 +1,4 @@
-import type { Probot, Context, Logger } from 'probot';
+import type { Probot, Context } from 'probot';
 
 import {
 	createIssueCommentReaction,
@@ -11,27 +11,6 @@ import {
 	RemoteChangedError,
 } from './errors.js';
 import rebase from './rebase.js';
-
-// Attach a prefix to all log messages
-const loggerWithPrefix = (
-	ctx: Context,
-	prefixer: (prefix: string) => string,
-) => {
-	return {
-		info: (message: string) => {
-			ctx.log.info(prefixer(message));
-		},
-		warn: (message: string) => {
-			ctx.log.warn(prefixer(message));
-		},
-		error: (message: string) => {
-			ctx.log.error(prefixer(message));
-		},
-		debug: (message: string) => {
-			ctx.log.debug(prefixer(message));
-		},
-	} as Logger;
-};
 
 export default (app: Probot) => {
 	// Pull request comments are just issue comments with code
@@ -51,10 +30,10 @@ export default (app: Probot) => {
 
 			const { owner, repo } = ctx.repo();
 
-			const logger = loggerWithPrefix(
-				ctx,
-				(message) =>
-					`[basejump/${owner}/${repo}/pr-${issue.number}] ${message}`,
+			// Attach a prefix to all log messages
+			const logger = ctx.log.child(
+				{},
+				{ msgPrefix: `[basejump/${owner}/${repo}/pr-${issue.number}] ` },
 			);
 
 			logger.info('Received rebase request');
