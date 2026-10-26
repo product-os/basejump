@@ -103,7 +103,10 @@ async function forcePushWithLease(git: SimpleGit, branch: string) {
 				// Remote rejected the push due to ref change
 				new RegExp(`is at [a-f0-9]{40} but expected [a-f0-9]{40}`).test(
 					error.message,
-				))
+				) ||
+				// Remote rejected the push due to ref change, as reported by newer
+				// git versions which update refs in batches
+				error.message.includes('(incorrect old value provided)'))
 		) {
 			throw new RemoteChangedError(error.message);
 		}
