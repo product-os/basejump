@@ -32,13 +32,15 @@ export const createIssueCommentReaction = async (
  * Check whether all commits of the PR are verified by GitHub
  *
  * The endpoint is paginated and lists a maximum of 250 commits, so commits
- * are treated as unverified unless all `commitCount` commits could be listed.
+ * are treated as unverified unless all `commitCount` commits could be listed,
+ * and they include the expected head commit `headSha`.
  *
  * See: https://docs.github.com/en/rest/pulls/pulls#list-commits-on-a-pull-request
  */
 export const areCommitsVerified = async (
 	ctx: Context<'issue_comment.created'>,
 	commitCount: number,
+	headSha: string,
 	logger: Logger,
 ): Promise<boolean> => {
 	try {
@@ -55,6 +57,15 @@ export const areCommitsVerified = async (
 		if (commits.length !== commitCount) {
 			logger.warn(
 				`Listed ${commits.length} of ${commitCount} commits, so not all commits can be checked for verification`,
+			);
+			return false;
+		}
+
+		// The listed commits must include the expected head commit, otherwise
+		// the branch has changed and they aren't the commits that will be rebased
+		if (!commits.some(({ sha }) => sha === headSha)) {
+			logger.warn(
+				`Listed commits don't include the head commit ${headSha}, so they can't be checked for verification`,
 			);
 			return false;
 		}

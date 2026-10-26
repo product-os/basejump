@@ -86,6 +86,11 @@ async function createCommit({
 	await git.commit(`Add ${filename}`);
 }
 
+// Get the commit sha a branch is at
+async function headSha(repoPath: string, branch: string) {
+	return await simpleGit(repoPath).revparse(branch);
+}
+
 async function listCommits(git: SimpleGit, branch: string) {
 	return (await git.raw(['log', '--oneline', branch]))
 		.split('\n')
@@ -164,7 +169,13 @@ describe('git rebase', () => {
 		expect(f2).toMatch(/Add 2/);
 
 		// Rebase the feature branch onto main
-		await rebase(remoteRepoPath, feat, 'main', []);
+		await rebase(
+			remoteRepoPath,
+			feat,
+			await headSha(remoteRepoPath, feat),
+			'main',
+			[],
+		);
 
 		// Assert that:
 		// - feature branch has 3 commits, 'Add 0', 'Add 1', and 'Add 2'
@@ -226,7 +237,13 @@ describe('git rebase', () => {
 		expect(f6).toMatch(/Add 6/);
 
 		// Rebase the feature branch onto main
-		await rebase(remoteRepoPath, feat, 'main', []);
+		await rebase(
+			remoteRepoPath,
+			feat,
+			await headSha(remoteRepoPath, feat),
+			'main',
+			[],
+		);
 
 		// Assert that:
 		// - feature branch has 7 commits
@@ -287,7 +304,13 @@ describe('git rebase', () => {
 		// Rebase the feature branch onto main
 		// Assert that the conflict sha in the CodeConflictError is the same as the conflict sha in the rebase error
 		try {
-			await rebase(remoteRepoPath, feat, 'main', []);
+			await rebase(
+				remoteRepoPath,
+				feat,
+				await headSha(remoteRepoPath, feat),
+				'main',
+				[],
+			);
 			expect.fail('Expected rebase to throw CodeConflictError');
 		} catch (error: any) {
 			expect(error).toBeInstanceOf(CodeConflictError);
@@ -325,7 +348,13 @@ describe('git rebase', () => {
 
 		// Attempt to rebase should throw CodeConflictError
 		try {
-			await rebase(remoteRepoPath, feat, 'main', []);
+			await rebase(
+				remoteRepoPath,
+				feat,
+				await headSha(remoteRepoPath, feat),
+				'main',
+				[],
+			);
 			expect.fail('Expected rebase to throw CodeConflictError');
 		} catch (error: any) {
 			expect(error).toBeInstanceOf(CodeConflictError);
@@ -367,7 +396,13 @@ describe('git rebase', () => {
 
 		// Attempt to rebase should throw CodeConflictError
 		try {
-			await rebase(remoteRepoPath, feat, 'main', []);
+			await rebase(
+				remoteRepoPath,
+				feat,
+				await headSha(remoteRepoPath, feat),
+				'main',
+				[],
+			);
 			expect.fail('Expected rebase to throw CodeConflictError');
 		} catch (error: any) {
 			expect(error).toBeInstanceOf(CodeConflictError);
@@ -405,7 +440,13 @@ describe('git rebase', () => {
 
 		// Attempt to rebase should throw CodeConflictError
 		try {
-			await rebase(remoteRepoPath, feat, 'main', []);
+			await rebase(
+				remoteRepoPath,
+				feat,
+				await headSha(remoteRepoPath, feat),
+				'main',
+				[],
+			);
 			expect.fail('Expected rebase to throw CodeConflictError');
 		} catch (error: any) {
 			expect(error).toBeInstanceOf(CodeConflictError);
@@ -441,7 +482,13 @@ describe('git rebase', () => {
 		const [f2] = await listCommits(remoteGit, feat);
 
 		// Rebase the feature branch onto the non-default base branch
-		await rebase(remoteRepoPath, feat, base, []);
+		await rebase(
+			remoteRepoPath,
+			feat,
+			await headSha(remoteRepoPath, feat),
+			base,
+			[],
+		);
 
 		// Feature branch should now have the base branch's commits under its own
 		const featCommits = await listCommits(remoteGit, feat);
@@ -464,13 +511,54 @@ describe('git rebase', () => {
 		expect(mainCommits).toEqual(featCommits);
 
 		// Rebase should complete successfully without doing anything
-		await rebase(remoteRepoPath, feat, 'main', []);
+		await rebase(
+			remoteRepoPath,
+			feat,
+			await headSha(remoteRepoPath, feat),
+			'main',
+			[],
+		);
 
 		// Both branches should still have the same commits
 		const mainCommitsAfter = await listCommits(remoteGit, 'main');
 		const featCommitsAfter = await listCommits(remoteGit, feat);
 		expect(mainCommitsAfter).toEqual(mainCommits);
 		expect(featCommitsAfter).toEqual(featCommits);
+	});
+
+	test('should throw RemoteChangedError without pushing if the feature branch is not at the expected sha', async () => {
+		const { localGit, localRepoPath, remoteGit, remoteRepoPath } =
+			await setupRemote(tempDir);
+
+		// Create a commit on main
+		await createCommit({ repoPath: localRepoPath, filename: '1' });
+		await localGit.push('origin', 'main');
+
+		// Create a feature branch from initial commit with two commits on it
+		const feat = 'feature';
+		await localGit.checkoutBranch(feat, 'main^');
+		await createCommit({
+			repoPath: localRepoPath,
+			filename: '2',
+			branch: feat,
+		});
+		const expectedSha = await headSha(localRepoPath, feat);
+		// e.g. an unverified commit pushed after the commits were checked
+		await createCommit({
+			repoPath: localRepoPath,
+			filename: '3',
+			branch: feat,
+		});
+		await localGit.push('origin', feat);
+
+		const featCommitsBefore = await listCommits(remoteGit, feat);
+
+		await expect(
+			rebase(remoteRepoPath, feat, expectedSha, 'main', []),
+		).rejects.toThrow(RemoteChangedError);
+
+		// The remote feature branch should be unchanged
+		expect(await listCommits(remoteGit, feat)).toEqual(featCommitsBefore);
 	});
 
 	test('should throw RemoteChangedError if the remote branch is updated before pushing', async () => {
@@ -502,9 +590,15 @@ describe('git rebase', () => {
 			await localGit.push('origin', feat);
 		};
 
-		await expect(rebase(remoteRepoPath, feat, 'main', [])).rejects.toThrow(
-			RemoteChangedError,
-		);
+		await expect(
+			rebase(
+				remoteRepoPath,
+				feat,
+				await headSha(remoteRepoPath, feat),
+				'main',
+				[],
+			),
+		).rejects.toThrow(RemoteChangedError);
 
 		// The concurrently pushed commit should not have been overwritten
 		const [f3] = await listCommits(remoteGit, feat);
@@ -544,9 +638,15 @@ describe('git rebase', () => {
 		);
 		await fs.chmod(hookPath, 0o755);
 
-		await expect(rebase(remoteRepoPath, feat, 'main', [])).rejects.toThrow(
-			RemoteChangedError,
-		);
+		await expect(
+			rebase(
+				remoteRepoPath,
+				feat,
+				await headSha(remoteRepoPath, feat),
+				'main',
+				[],
+			),
+		).rejects.toThrow(RemoteChangedError);
 
 		// The concurrent update should not have been overwritten
 		expect((await remoteGit.revparse(feat)).trim()).toEqual(mainSha);
@@ -600,7 +700,13 @@ describe('git rebase', () => {
 		expect(mergeCommit).toBeDefined();
 
 		// Rebase feature branch onto main
-		await rebase(remoteRepoPath, feat, 'main', []);
+		await rebase(
+			remoteRepoPath,
+			feat,
+			await headSha(remoteRepoPath, feat),
+			'main',
+			[],
+		);
 
 		// Assert that merge commit is dropped
 		const featCommitsAfter = await listCommits(remoteGit, feat);
@@ -665,7 +771,13 @@ describe('git rebase', () => {
 		expect(cherryPickedCommit).toBeDefined();
 
 		// Rebase feature branch onto main
-		await rebase(remoteRepoPath, feat, 'main', []);
+		await rebase(
+			remoteRepoPath,
+			feat,
+			await headSha(remoteRepoPath, feat),
+			'main',
+			[],
+		);
 
 		// Assert that the cherry-picked commit is skipped during rebase
 		const featCommitsAfter = await listCommits(remoteGit, feat);
@@ -730,7 +842,13 @@ describe('git rebase', () => {
 		expect(emptyCommit).toBeDefined();
 
 		// Rebase feature branch onto main
-		await rebase(remoteRepoPath, feat, 'main', []);
+		await rebase(
+			remoteRepoPath,
+			feat,
+			await headSha(remoteRepoPath, feat),
+			'main',
+			[],
+		);
 
 		// Assert that intentionally empty commit is preserved during rebase
 		const featCommitsAfter = await listCommits(remoteGit, feat);
@@ -777,7 +895,13 @@ describe('git rebase', () => {
 		const workingDirBefore = await fs.readdir(os.tmpdir());
 
 		// Perform rebase (should succeed)
-		await rebase(remoteRepoPath, feat, 'main', []);
+		await rebase(
+			remoteRepoPath,
+			feat,
+			await headSha(remoteRepoPath, feat),
+			'main',
+			[],
+		);
 
 		// Assert that working directory was cleaned up
 		expect(await fs.readdir(os.tmpdir())).toEqual(workingDirBefore);
@@ -807,7 +931,13 @@ describe('git rebase', () => {
 
 		// Perform rebase (should fail with conflict)
 		try {
-			await rebase(remoteRepoPath, feat, 'main', []);
+			await rebase(
+				remoteRepoPath,
+				feat,
+				await headSha(remoteRepoPath, feat),
+				'main',
+				[],
+			);
 			expect.fail('Expected rebase to throw CodeConflictError');
 		} catch (error: any) {
 			expect(error).toBeInstanceOf(CodeConflictError);
@@ -830,6 +960,7 @@ describe('git rebase', () => {
 			rebase(
 				'https://x-access-token:secret-token@127.0.0.1:9/owner/repo.git',
 				'feature',
+				'0'.repeat(40),
 				'main',
 				[],
 				logger as any,
@@ -867,7 +998,13 @@ describe('git rebase', () => {
 		];
 
 		// Perform rebase with git config
-		await rebase(remoteRepoPath, feat, 'main', gitConfig);
+		await rebase(
+			remoteRepoPath,
+			feat,
+			await headSha(remoteRepoPath, feat),
+			'main',
+			gitConfig,
+		);
 
 		// Fetch latest from remote feature branch and verify committer
 		// See: https://git-scm.com/docs/git-log

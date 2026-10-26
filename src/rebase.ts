@@ -11,6 +11,7 @@ import { CodeConflictError, RemoteChangedError } from './errors.ts';
  * Performs a git rebase operation
  * @param remoteUri - URI to clone the repository from, e.g. `https://github.com/owner/repo.git`
  * @param featBranch - Branch to be rebased, e.g. `feature`
+ * @param featHeadSha - Commit sha the branch to be rebased is expected to be at
  * @param baseBranch - Branch to rebase onto, e.g. `main`
  * @param gitConfig - Git config to use when initializing git client
  * @param logger - Logger instance
@@ -19,6 +20,7 @@ import { CodeConflictError, RemoteChangedError } from './errors.ts';
 export default async function run(
 	remoteUri: string,
 	featBranch: string,
+	featHeadSha: string,
 	baseBranch: string,
 	gitConfig: string[],
 	logger?: Logger,
@@ -47,13 +49,22 @@ export default async function run(
 		logger?.debug(`Checking out ${featBranch}`);
 		await git.checkout(featBranch);
 
+		// Only rebase the commits that were expected, i.e. the ones whose
+		// verification was checked to decide whether to sign the rebased commits
+		const headSha = await git.revparse('HEAD');
+		if (headSha !== featHeadSha) {
+			throw new RemoteChangedError(
+				`Expected ${featBranch} to be at ${featHeadSha} but it is at ${headSha}`,
+			);
+		}
+
 		logger?.debug(`Rebasing ${featBranch} onto ${baseBranch}`);
 		const wasRebased = await doRebase(git, baseBranch);
 
 		// Only modify remote if rebase was performed
 		if (wasRebased) {
 			logger?.debug(`Pushing ${featBranch} to origin`);
-			await forcePushWithLease(git, featBranch);
+			await forcePushWithLease(git, featBranch, featHeadSha);
 		}
 	} finally {
 		// Remove the working directory
@@ -93,9 +104,15 @@ export async function doRebase(
 	}
 }
 
-async function forcePushWithLease(git: SimpleGit, branch: string) {
+async function forcePushWithLease(
+	git: SimpleGit,
+	branch: string,
+	expectedSha: string,
+) {
 	try {
-		await git.push('origin', branch, ['--force-with-lease']);
+		await git.push('origin', branch, [
+			`--force-with-lease=${branch}:${expectedSha}`,
+		]);
 	} catch (error: unknown) {
 		if (
 			error instanceof Error &&
