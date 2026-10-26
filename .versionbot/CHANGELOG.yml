@@ -1,4 +1,21 @@
 - commits:
+    - subject: Actually disable request throttling in tests
+      hash: 10489417bd4fdce0e27353a551218ee1e7dbf32f
+      body: |
+        Probot always passes its own `throttle` options (its rate limit
+        handlers) when instantiating Octokit, which replace the static
+        `throttle: { enabled: false }` default, so throttling stayed enabled
+        and every write request in the tests was delayed by a second (~38s for
+        the app tests). Merge `enabled: false` into the options on each
+        instantiation instead, which brings the app tests down to under 1s.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 0.2.24
+  title: ""
+  date: 2026-10-26T22:30:46.271Z
+- commits:
     - subject: Require Node.js >= 24
       hash: e5fbd45158e307be61050657b2ace7ffb28923d6
       body: |
