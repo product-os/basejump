@@ -1,11 +1,13 @@
 {
   "compilerOptions": {
-    "incremental": true,
     "target": "es2022",
     "module": "NodeNext",
-    "declaration": true,
-    "sourceMap": true,
-    "outDir": "./lib",
+
+    /* Sources are run as-is with Node.js type stripping, so only type check them */
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
 
     /* Strict Type-Checking Options */
     "strict": true,

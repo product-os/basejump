@@ -5,7 +5,7 @@ import { simpleGit } from 'simple-git';
 import type { SimpleGit } from 'simple-git';
 import type { Logger } from 'pino';
 
-import { CodeConflictError, RemoteChangedError } from './errors.js';
+import { CodeConflictError, RemoteChangedError } from './errors.ts';
 
 /**
  * Performs a git rebase operation

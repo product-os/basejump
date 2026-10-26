@@ -14,8 +14,8 @@ import * as fs from 'node:fs/promises';
 import type { SimpleGit } from 'simple-git';
 import { simpleGit } from 'simple-git';
 
-import rebase from '../src/rebase.js';
-import { CodeConflictError, RemoteChangedError } from '../src/errors.js';
+import rebase from '../src/rebase.ts';
+import { CodeConflictError, RemoteChangedError } from '../src/errors.ts';
 
 // Run a callback right before the next push, to simulate the remote branch
 // being updated by someone else while a rebase is in progress

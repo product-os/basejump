@@ -4,13 +4,13 @@ import {
 	createIssueCommentReaction,
 	areCommitsVerified,
 	getInstallationToken,
-} from './github.js';
+} from './github.ts';
 import {
 	isCodeConflictError,
 	isHttpError,
 	RemoteChangedError,
-} from './errors.js';
-import rebase from './rebase.js';
+} from './errors.ts';
+import rebase from './rebase.ts';
 
 export default (app: Probot) => {
 	// Pull request comments are just issue comments with code
