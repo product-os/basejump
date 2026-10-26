@@ -1,4 +1,19 @@
 - commits:
+    - subject: Use a pino child logger for prefixed log messages
+      hash: a68edc933276b7a23cdb95e076e57056508cf0a8
+      body: |
+        The prefixed logger was an object with only info/warn/error/debug, cast
+        to a full pino `Logger`, so calling any other logger method on it would
+        type check but fail at runtime. Use a child logger with pino's
+        `msgPrefix` option instead, which logs the same output.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 0.2.20
+  title: ""
+  date: 2026-10-26T16:42:50.938Z
+- commits:
     - subject: Only trigger on the exact `/rebase` command
       hash: 0853631760a9d349509199755f34beb11f131483
       body: |
