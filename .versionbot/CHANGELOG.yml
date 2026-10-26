@@ -1,4 +1,25 @@
 - commits:
+    - subject: Detect stale lease rejections from newer git servers
+      hash: 9de8cc7f66934999018d63df1bc29b0280b98bb7
+      body: |
+        When the remote branch changes after the push checked the lease but
+        before the remote updated the ref, newer git versions (which update refs
+        in batches) reject the push with "(incorrect old value provided)" rather
+        than "is at <sha> but expected <sha>", which was then reported as a
+        generic failure instead of a RemoteChangedError.
+
+        Also replace the `test.todo` for --force-with-lease failures, which
+        relied on timing, with deterministic tests: one updates the remote
+        branch right before the push via a wrapped simple-git `push`, the other
+        updates it while the push is being received via a pre-receive hook.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 0.2.21
+  title: ""
+  date: 2026-10-26T17:19:52.473Z
+- commits:
     - subject: Use a pino child logger for prefixed log messages
       hash: a68edc933276b7a23cdb95e076e57056508cf0a8
       body: |
