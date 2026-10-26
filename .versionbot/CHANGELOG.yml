@@ -1,4 +1,27 @@
 - commits:
+    - subject: Stop the rebase tests from modifying the global git config
+      hash: 0250f49845e4eaefa89baa602cb2612ab6fb0c71
+      body: |
+        The rebase tests set `user.name`/`user.email` in the developer's real
+        global git config and then "restored" them. When no global identity
+        was set beforehand, the restore wrote empty values, after which every
+        `git commit` on the machine fails with "empty ident name not allowed".
+        The tests also failed outright when the home directory is read-only,
+        and were affected by the developer's own global config (e.g.
+        `commit.gpgsign=true`).
+
+        Point HOME/XDG_CONFIG_HOME at a temporary directory holding a test
+        identity instead. simple-git strips GIT_* variables (such as
+        GIT_CONFIG_GLOBAL) from the git processes it spawns, so those can't be
+        used for this.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 0.2.17
+  title: ""
+  date: 2026-10-26T16:07:18.076Z
+- commits:
     - subject: Update dependency nock to v15
       hash: 0fbf7c7a6a43854343e8896562f5f17aa129e86a
       body: |
