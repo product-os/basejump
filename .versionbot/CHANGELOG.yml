@@ -1,4 +1,31 @@
 - commits:
+    - subject: Run the TypeScript sources directly with Node.js type stripping
+      hash: 558bb73f8bd526aa7c49cf523c2d8550d211588d
+      body: |
+        Node.js >= 22.18 strips TypeScript types natively, so the sources can
+        be run as-is instead of being compiled to `lib` first. This removes the
+        build step from the Dockerfile, and with it the need for `typescript`
+        to be a production dependency (it's now only a dev dependency, used for
+        type checking).
+
+        - run `probot run ./src/index.ts`
+        - import modules by their `.ts` paths, which Node.js requires
+        - type check with `noEmit`, and enable `verbatimModuleSyntax` and
+          `erasableSyntaxOnly` so tsc rejects syntax that type stripping can't
+          handle (e.g. enums, parameter properties, type-only imports without
+          `import type`)
+        - `npm test` now type checks the tests too, not only the sources
+        - drop the release tsconfig, `lib` output and rimraf
+      footer:
+        See: https://nodejs.org/api/typescript.html#type-stripping
+        see: https://nodejs.org/api/typescript.html#type-stripping
+        Change-type: minor
+        change-type: minor
+      author: Pagan Gazzard
+  version: 0.3.0
+  title: ""
+  date: 2026-10-26T23:42:38.029Z
+- commits:
     - subject: Actually disable request throttling in tests
       hash: 10489417bd4fdce0e27353a551218ee1e7dbf32f
       body: |
