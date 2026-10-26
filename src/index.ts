@@ -43,9 +43,9 @@ export default (app: Probot) => {
 			const { issue, comment } = ctx.payload;
 
 			// Don't rebase if:
-			// - Comment doesn't start with "/rebase", or
+			// - Comment doesn't start with the "/rebase" command, e.g. "/rebased", or
 			// - Issue is not a PR
-			if (!comment.body.startsWith('/rebase') || !issue.pull_request) {
+			if (!/^\/rebase(\s|$)/.test(comment.body) || !issue.pull_request) {
 				return;
 			}
 

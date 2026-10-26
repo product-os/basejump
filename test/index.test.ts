@@ -63,20 +63,23 @@ describe('basejump', () => {
 		nock.enableNetConnect();
 	});
 
-	test('ignores non-rebase comments', async () => {
-		await probot.receive({
-			name: 'issue_comment',
-			payload: {
-				...payload,
-				comment: {
-					...payload.comment,
-					body: 'not a /rebase comment',
+	test.each(['not a /rebase comment', '/rebased manually', '/rebase-all'])(
+		'ignores non-rebase comments: %s',
+		async (body) => {
+			await probot.receive({
+				name: 'issue_comment',
+				payload: {
+					...payload,
+					comment: {
+						...payload.comment,
+						body,
+					},
 				},
-			},
-		});
-		// No API calls should be made
-		expect(nock.pendingMocks()).toHaveLength(0);
-	});
+			});
+			// No API calls should be made
+			expect(nock.pendingMocks()).toHaveLength(0);
+		},
+	);
 
 	test('ignores rebase comments on regular issues', async () => {
 		await probot.receive({
