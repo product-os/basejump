@@ -1,4 +1,19 @@
 - commits:
+    - subject: Fix the redacted clone URI in logs
+      hash: 79a2024d2835ce35e7914efecee8798de3844b6b
+      body: |
+        The credentials were replaced with `https://github.com/`, but the host
+        comes after them in the URI, so it was logged as e.g.
+        `https://github.com/github.com/owner/repo.git`. Only strip the
+        credentials instead.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 0.2.18
+  title: ""
+  date: 2026-10-26T16:17:03.594Z
+- commits:
     - subject: Stop the rebase tests from modifying the global git config
       hash: 0250f49845e4eaefa89baa602cb2612ab6fb0c71
       body: |
