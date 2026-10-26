@@ -1,4 +1,21 @@
 - commits:
+    - subject: Remove the picomatch override
+      hash: 4abb0a4bfab273e557a2e85bcd56de8f82c4e91e
+      body: |
+        The override pinned every copy of picomatch to exactly 4.0.4, which
+        forced a different major version onto dependencies requiring ^2
+        (micromatch 4 and readdirp 3, via @balena/lint's depcheck), and blocked
+        later 4.x releases. The advisory it was added for is fixed in both 2.3.2
+        and 4.0.4, which the lockfile now resolves to without an override
+        (2.3.2 and 4.0.7), with no remaining picomatch advisories.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 0.3.1
+  title: ""
+  date: 2026-10-26T23:54:33.609Z
+- commits:
     - subject: Run the TypeScript sources directly with Node.js type stripping
       hash: 558bb73f8bd526aa7c49cf523c2d8550d211588d
       body: |
