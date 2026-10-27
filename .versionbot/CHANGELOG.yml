@@ -1,4 +1,20 @@
 - commits:
+    - subject: Allow running the container without a GPG key
+      hash: 5b7be73b47523267b326bed9c04e783a3bc74518
+      body: |
+        setup.sh runs with `set -u`, so the container exited with
+        "GPG_KEY_FILE: unbound variable" when no GPG key was configured, even
+        though commit signing is optional (the app only signs if KEY_ID is set)
+        and the README's basic `docker run` example doesn't set it. Skip the
+        GPG setup when GPG_KEY_FILE is unset or empty.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 0.3.3
+  title: ""
+  date: 2026-10-27T00:11:36.023Z
+- commits:
     - subject: Check the verification of every commit before signing
       hash: 8b3c4092ae9cff9f916a47661a7404f7b2d16896
       body: |
