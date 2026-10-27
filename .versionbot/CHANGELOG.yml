@@ -1,4 +1,24 @@
 - commits:
+    - subject: Check the verification of every commit before signing
+      hash: 8b3c4092ae9cff9f916a47661a7404f7b2d16896
+      body: |
+        Only the first page of a pull request's commits (30 by default) was
+        checked, so a PR with an unverified commit beyond the first page would
+        still have all of its commits signed with basejump's key during the
+        rebase. The endpoint also lists at most 250 commits.
+
+        Paginate the listing, and treat the commits as unverified unless all
+        of the pull request's commits could be listed and checked.
+      footer:
+        See: https://docs.github.com/en/rest/pulls/pulls#list-commits-on-a-pull-request
+        see: https://docs.github.com/en/rest/pulls/pulls#list-commits-on-a-pull-request
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 0.3.2
+  title: ""
+  date: 2026-10-27T00:05:21.040Z
+- commits:
     - subject: Remove the picomatch override
       hash: 4abb0a4bfab273e557a2e85bcd56de8f82c4e91e
       body: |
