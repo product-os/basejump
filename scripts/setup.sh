@@ -2,6 +2,12 @@
 set -euo pipefail
 
 setup_gpg() {
+    # Signing is optional, the app only signs commits if KEY_ID is set
+    if [[ -z "${GPG_KEY_FILE:-}" ]]; then
+        echo "GPG_KEY_FILE is not set, rebased commits will not be signed"
+        return
+    fi
+
     echo "Setting up GPG for automated commit signing..."
 
     # Validate required files/vars exist
