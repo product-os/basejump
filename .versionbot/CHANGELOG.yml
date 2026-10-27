@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update dependency typescript to v6
+      hash: e3c50b5e9f550a368e41008e32e1503f5d1ec79d
+      body: |
+        Update typescript from 5.9.3 to 6.0.3
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+  version: 0.4.1
+  title: ""
+  date: 2026-10-27T02:23:10.007Z
+- commits:
     - subject: Only allow users with write access to trigger a rebase
       hash: 425c43381ddc5325d59294c22aa0dec043be1924
       body: |
