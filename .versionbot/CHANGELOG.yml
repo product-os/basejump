@@ -1,4 +1,27 @@
 - commits:
+    - subject: Only rebase and sign the commits that were checked for verification
+      hash: c17b32773f8f16bd7e75573f904a6d8dfe83c845
+      body: |
+        The commits' verification was checked via the API, but the rebase then
+        used whatever the branch pointed at when it was cloned later on. Commits
+        pushed in between (e.g. unsigned commits pushed right after commenting
+        `/rebase`) would be rebased and signed with basejump's key without ever
+        having been checked.
+
+        Pin everything to the PR's head sha:
+        - only consider the commits verified if the listing includes the head
+          commit
+        - abort with a RemoteChangedError if the cloned branch isn't at the head
+          sha
+        - push with `--force-with-lease=<branch>:<head sha>`
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 0.3.4
+  title: ""
+  date: 2026-10-27T00:35:53.781Z
+- commits:
     - subject: Allow running the container without a GPG key
       hash: 5b7be73b47523267b326bed9c04e783a3bc74518
       body: |
