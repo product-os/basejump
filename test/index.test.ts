@@ -223,10 +223,11 @@ describe('basejump', () => {
 
 		expect(rebaseMock).toHaveBeenCalledOnce();
 		// Don't assert on the logger that's passed to rebase as it's not relevant
-		const firstFourCallArgs = rebaseMock.mock.calls[0].slice(0, 4);
-		expect(firstFourCallArgs).toEqual([
+		const firstFiveCallArgs = rebaseMock.mock.calls[0].slice(0, 5);
+		expect(firstFiveCallArgs).toEqual([
 			'https://x-access-token:test@github.com/balena-user/github-app-test.git',
 			'feature',
+			'head-sha',
 			'main',
 			expect.arrayContaining([
 				'user.name=Basejump Test Bot',
@@ -306,10 +307,11 @@ describe('basejump', () => {
 
 		expect(rebaseMock).toHaveBeenCalledOnce();
 		// Don't assert on the logger that's passed to rebase as it's not relevant
-		const firstFourCallArgs = rebaseMock.mock.calls[0].slice(0, 4);
-		expect(firstFourCallArgs).toEqual([
+		const firstFiveCallArgs = rebaseMock.mock.calls[0].slice(0, 5);
+		expect(firstFiveCallArgs).toEqual([
 			'https://x-access-token:test@github.com/balena-user/github-app-test.git',
 			'feature',
+			'head-sha',
 			'main',
 			expect.arrayContaining([
 				'user.name=Basejump Test Bot',
@@ -392,10 +394,11 @@ describe('basejump', () => {
 
 		expect(rebaseMock).toHaveBeenCalledOnce();
 		// Don't assert on the logger that's passed to rebase as it's not relevant
-		const firstFourCallArgs = rebaseMock.mock.calls[0].slice(0, 4);
-		expect(firstFourCallArgs).toEqual([
+		const firstFiveCallArgs = rebaseMock.mock.calls[0].slice(0, 5);
+		expect(firstFiveCallArgs).toEqual([
 			'https://x-access-token:test@github.com/balena-user/github-app-test.git',
 			'feature',
+			'head-sha',
 			'main',
 			expect.arrayContaining([
 				'user.name=Basejump Test Bot',
@@ -493,10 +496,11 @@ describe('basejump', () => {
 
 		expect(rebaseMock).toHaveBeenCalledOnce();
 		// Don't assert on the logger that's passed to rebase as it's not relevant
-		const firstFourCallArgs = rebaseMock.mock.calls[0].slice(0, 4);
-		expect(firstFourCallArgs).toEqual([
+		const firstFiveCallArgs = rebaseMock.mock.calls[0].slice(0, 5);
+		expect(firstFiveCallArgs).toEqual([
 			'https://x-access-token:test@github.com/balena-user/github-app-test.git',
 			'feature',
+			'head-sha',
 			'main',
 			expect.arrayContaining([
 				'user.name=Basejump Test Bot',
@@ -645,10 +649,11 @@ describe('basejump', () => {
 
 		expect(rebaseMock).toHaveBeenCalledOnce();
 		// Don't assert on the logger that's passed to rebase as it's not relevant
-		const firstFourCallArgs = rebaseMock.mock.calls[0].slice(0, 4);
-		expect(firstFourCallArgs).toEqual([
+		const firstFiveCallArgs = rebaseMock.mock.calls[0].slice(0, 5);
+		expect(firstFiveCallArgs).toEqual([
 			'https://x-access-token:test@github.com/balena-user/github-app-test.git',
 			'feature',
+			'head-sha-3',
 			'main',
 			expect.arrayContaining([
 				'committer.name=Basejump Test Bot',
@@ -757,10 +762,11 @@ describe('basejump', () => {
 
 		expect(rebaseMock).toHaveBeenCalledOnce();
 		// Don't assert on the logger that's passed to rebase as it's not relevant
-		const firstFourCallArgs = rebaseMock.mock.calls[0].slice(0, 4);
-		expect(firstFourCallArgs).toEqual([
+		const firstFiveCallArgs = rebaseMock.mock.calls[0].slice(0, 5);
+		expect(firstFiveCallArgs).toEqual([
 			'https://x-access-token:test@github.com/balena-user/github-app-test.git',
 			'feature',
+			'head-sha-3',
 			'main',
 			// When commits are unverified, GPG signing should be disabled
 			expect.arrayContaining([
@@ -772,7 +778,7 @@ describe('basejump', () => {
 			]),
 		]);
 		// Verify that GPG signing options are NOT included when commits are unverified
-		const gitConfig = firstFourCallArgs[3];
+		const gitConfig = firstFiveCallArgs[4];
 		expect(gitConfig).not.toContain('commit.gpgsign=true');
 		expect(gitConfig).not.toContain('user.signingkey=deadbeef');
 		expect(githubMock.pendingMocks()).toHaveLength(0);
@@ -889,10 +895,11 @@ describe('basejump', () => {
 
 		expect(rebaseMock).toHaveBeenCalledOnce();
 		// Don't assert on the logger that's passed to rebase as it's not relevant
-		const firstFourCallArgs = rebaseMock.mock.calls[0].slice(0, 4);
-		expect(firstFourCallArgs).toEqual([
+		const firstFiveCallArgs = rebaseMock.mock.calls[0].slice(0, 5);
+		expect(firstFiveCallArgs).toEqual([
 			'https://x-access-token:test@github.com/balena-user/github-app-test.git',
 			'feature',
+			'head-sha-4',
 			'main',
 			// When some commits are unverified, GPG signing should be disabled
 			expect.arrayContaining([
@@ -904,7 +911,84 @@ describe('basejump', () => {
 			]),
 		]);
 		// Verify that GPG signing is explicitly disabled and signing key is not included
-		const gitConfig = firstFourCallArgs[3];
+		const gitConfig = firstFiveCallArgs[4];
+		expect(gitConfig).not.toContain('commit.gpgsign=true');
+		expect(gitConfig).not.toContain('user.signingkey=deadbeef');
+		expect(githubMock.pendingMocks()).toHaveLength(0);
+	});
+
+	test('does not sign commits if the listed commits do not include the PR head commit', async () => {
+		// Mock rebase success
+		rebaseMock.mockResolvedValue(undefined);
+
+		const githubMock = nock('https://api.github.com')
+			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
+			.reply(200, { token: 'test' })
+			// Initial eyes reaction
+			.post(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+			)
+			.reply(201, { id: EYES_REACTION_ID })
+			// Get PR (feature)
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
+			.reply(200, {
+				number: PR_NUMBER,
+				commits: 1,
+				base: { ref: 'main', sha: 'base-sha' },
+				head: { ref: 'feature', sha: 'head-sha-2' },
+			})
+			// Compare branches, with behind_by indicating a rebase is required
+			.get('/repos/balena-user/github-app-test/compare/main...feature')
+			.reply(200, {
+				status: 'diverged',
+				ahead_by: 1,
+				behind_by: 2,
+				total_commits: 1,
+			})
+			// The listed commits are verified, but the branch has since changed,
+			// so they don't include the PR's head commit
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.query({ per_page: 100 })
+			.reply(200, [
+				{
+					sha: 'head-sha-1',
+					commit: {
+						verification: { verified: true, reason: 'valid' },
+						author: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+						committer: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+					},
+				},
+			])
+			// React to rebase success
+			.post(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+				{
+					content: 'rocket',
+				},
+			)
+			.reply(201)
+			// Delete eyes reaction
+			.delete(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions/${EYES_REACTION_ID}`,
+			)
+			.reply(204);
+
+		await probot.receive({
+			name: 'issue_comment',
+			payload,
+		});
+
+		expect(rebaseMock).toHaveBeenCalledOnce();
+		// The rebase should be pinned to the PR's head commit, without signing
+		const [, , featHeadSha, , gitConfig] = rebaseMock.mock.calls[0];
+		expect(featHeadSha).toEqual('head-sha-2');
+		expect(gitConfig).toContain('commit.gpgsign=false');
 		expect(gitConfig).not.toContain('commit.gpgsign=true');
 		expect(gitConfig).not.toContain('user.signingkey=deadbeef');
 		expect(githubMock.pendingMocks()).toHaveLength(0);
@@ -992,7 +1076,7 @@ describe('basejump', () => {
 
 		expect(rebaseMock).toHaveBeenCalledOnce();
 		// The unverified commit on the second page should disable signing
-		const gitConfig = rebaseMock.mock.calls[0][3];
+		const gitConfig = rebaseMock.mock.calls[0][4];
 		expect(gitConfig).toContain('commit.gpgsign=false');
 		expect(gitConfig).not.toContain('commit.gpgsign=true');
 		expect(gitConfig).not.toContain('user.signingkey=deadbeef');
@@ -1067,7 +1151,7 @@ describe('basejump', () => {
 
 		expect(rebaseMock).toHaveBeenCalledOnce();
 		// The unlisted commits can't be verified, so signing should be disabled
-		const gitConfig = rebaseMock.mock.calls[0][3];
+		const gitConfig = rebaseMock.mock.calls[0][4];
 		expect(gitConfig).toContain('commit.gpgsign=false');
 		expect(gitConfig).not.toContain('commit.gpgsign=true');
 		expect(gitConfig).not.toContain('user.signingkey=deadbeef');

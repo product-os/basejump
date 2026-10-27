@@ -86,6 +86,7 @@ export default (app: Probot) => {
 				const shouldSignDuringRebase = await areCommitsVerified(
 					ctx,
 					pr.commits,
+					pr.head.sha,
 					logger,
 				);
 
@@ -106,6 +107,7 @@ export default (app: Probot) => {
 					`https://x-access-token:${authToken}@`,
 				);
 				const featBranch = pr.head.ref;
+				const featHeadSha = pr.head.sha;
 				const baseBranch = pr.base.ref;
 				const gitConfig = [
 					`user.name=${process.env.GIT_COMMITTER_NAME}`,
@@ -123,7 +125,14 @@ export default (app: Probot) => {
 				}
 
 				// Rebase locally with git
-				await rebase(remoteUri, featBranch, baseBranch, gitConfig, logger);
+				await rebase(
+					remoteUri,
+					featBranch,
+					featHeadSha,
+					baseBranch,
+					gitConfig,
+					logger,
+				);
 
 				// Notify success with rocket emoji
 				await createIssueCommentReaction(ctx, comment.id, 'rocket', logger);
