@@ -47,7 +47,10 @@ export default async function run(
 		await git.clone(remoteUri, workingDir);
 
 		logger?.debug(`Checking out ${featBranch}`);
-		await git.checkout(featBranch);
+		// The trailing `--` marks the branch as a revision rather than a path,
+		// as otherwise the checkout is ambiguous and fails when a top-level
+		// file or directory has the same name as the branch, e.g. `docs`
+		await git.checkout([featBranch, '--']);
 
 		// Only rebase the commits that were expected, i.e. the ones whose
 		// verification was checked to decide whether to sign the rebased commits
