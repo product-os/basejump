@@ -1,4 +1,24 @@
 - commits:
+    - subject: Only allow users with write access to trigger a rebase
+      hash: 425c43381ddc5325d59294c22aa0dec043be1924
+      body: |
+        Anyone who can comment on a pull request could trigger a rebase and
+        force push of its branch, which on public repos means any GitHub user,
+        e.g. to repeatedly dismiss stale approvals or churn CI.
+
+        Check the commenter's permission level and only proceed for users with
+        write (or maintain/admin) access, i.e. users who could push to the
+        branch themselves. Others get a confused reaction.
+      footer:
+        See: https://docs.github.com/en/rest/collaborators/collaborators#get-repository-permissions-for-a-user
+        see: https://docs.github.com/en/rest/collaborators/collaborators#get-repository-permissions-for-a-user
+        Change-type: minor
+        change-type: minor
+      author: Pagan Gazzard
+  version: 0.4.0
+  title: ""
+  date: 2026-10-27T02:17:51.167Z
+- commits:
     - subject: Disambiguate the feature branch checkout from paths
       hash: 50c6b83889182b74831c61fcbe460f7d5fed2a84
       body: |
