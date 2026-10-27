@@ -4,6 +4,7 @@ import {
 	createIssueCommentReaction,
 	areCommitsVerified,
 	getInstallationToken,
+	hasWriteAccess,
 } from './github.ts';
 import {
 	isCodeConflictError,
@@ -41,6 +42,16 @@ export default (app: Probot) => {
 			let eyesReactionId: number | undefined;
 
 			try {
+				// Only allow users who could push to the PR's branch themselves to
+				// trigger a force push of it, as anyone can comment on public repos
+				if (!(await hasWriteAccess(ctx, comment.user.login))) {
+					logger.warn(
+						`${comment.user.login} does not have write access to the repo, exiting`,
+					);
+					await createIssueCommentReaction(ctx, comment.id, 'confused', logger);
+					return;
+				}
+
 				// Indicate request received by reacting with an eyes emoji
 				const { id } = await createIssueCommentReaction(
 					ctx,
