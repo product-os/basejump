@@ -170,6 +170,7 @@ describe('basejump', () => {
 			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
 			.reply(200, {
 				number: PR_NUMBER,
+				commits: 1,
 				base: { ref: 'main', sha: 'base-sha' },
 				head: { ref: 'feature', sha: 'head-sha' },
 			})
@@ -183,6 +184,7 @@ describe('basejump', () => {
 			})
 			// Get commit verification statuses
 			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.query({ per_page: 100 })
 			.reply(200, [
 				{
 					sha: 'head-sha',
@@ -251,6 +253,7 @@ describe('basejump', () => {
 			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
 			.reply(200, {
 				number: PR_NUMBER,
+				commits: 1,
 				base: { ref: 'main', sha: 'base-sha' },
 				head: { ref: 'feature', sha: 'head-sha' },
 			})
@@ -264,6 +267,7 @@ describe('basejump', () => {
 			})
 			// Get commit verification statuses
 			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.query({ per_page: 100 })
 			.reply(200, [
 				{
 					sha: 'head-sha',
@@ -335,6 +339,7 @@ describe('basejump', () => {
 			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
 			.reply(200, {
 				number: PR_NUMBER,
+				commits: 1,
 				base: { ref: 'main', sha: 'base-sha' },
 				head: { ref: 'feature', sha: 'head-sha' },
 			})
@@ -348,6 +353,7 @@ describe('basejump', () => {
 			})
 			// Get commit verification statuses
 			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.query({ per_page: 100 })
 			.reply(200, [
 				{
 					sha: 'head-sha',
@@ -421,6 +427,7 @@ describe('basejump', () => {
 			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
 			.reply(200, {
 				number: PR_NUMBER,
+				commits: 1,
 				base: { ref: 'main', sha: 'base-sha' },
 				head: { ref: 'feature', sha: 'head-sha' },
 			})
@@ -434,6 +441,7 @@ describe('basejump', () => {
 			})
 			// Get commit verification statuses
 			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.query({ per_page: 100 })
 			.reply(200, [
 				{
 					sha: 'head-sha',
@@ -556,6 +564,7 @@ describe('basejump', () => {
 			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
 			.reply(200, {
 				number: PR_NUMBER,
+				commits: 3,
 				base: { ref: 'main', sha: 'base-sha' },
 				head: { ref: 'feature', sha: 'head-sha-3' },
 			})
@@ -569,6 +578,7 @@ describe('basejump', () => {
 			})
 			// Get commit verification statuses for multiple commits
 			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.query({ per_page: 100 })
 			.reply(200, [
 				{
 					sha: 'head-sha-1',
@@ -666,6 +676,7 @@ describe('basejump', () => {
 			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
 			.reply(200, {
 				number: PR_NUMBER,
+				commits: 3,
 				base: { ref: 'main', sha: 'base-sha' },
 				head: { ref: 'feature', sha: 'head-sha-3' },
 			})
@@ -679,6 +690,7 @@ describe('basejump', () => {
 			})
 			// Get commit verification statuses for multiple unverified commits
 			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.query({ per_page: 100 })
 			.reply(200, [
 				{
 					sha: 'head-sha-1',
@@ -782,6 +794,7 @@ describe('basejump', () => {
 			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
 			.reply(200, {
 				number: PR_NUMBER,
+				commits: 4,
 				base: { ref: 'main', sha: 'base-sha' },
 				head: { ref: 'feature', sha: 'head-sha-4' },
 			})
@@ -795,6 +808,7 @@ describe('basejump', () => {
 			})
 			// Get commit verification statuses with mixed verification states
 			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.query({ per_page: 100 })
 			.reply(200, [
 				{
 					sha: 'head-sha-1',
@@ -891,6 +905,170 @@ describe('basejump', () => {
 		]);
 		// Verify that GPG signing is explicitly disabled and signing key is not included
 		const gitConfig = firstFourCallArgs[3];
+		expect(gitConfig).not.toContain('commit.gpgsign=true');
+		expect(gitConfig).not.toContain('user.signingkey=deadbeef');
+		expect(githubMock.pendingMocks()).toHaveLength(0);
+	});
+
+	test('checks the verification of commits on every page', async () => {
+		// Mock rebase success
+		rebaseMock.mockResolvedValue(undefined);
+
+		const verifiedCommit = {
+			sha: 'head-sha-1',
+			commit: {
+				verification: { verified: true, reason: 'valid' },
+				author: { name: 'Basejump Test Bot', email: 'basejump-test@balena.io' },
+				committer: {
+					name: 'Basejump Test Bot',
+					email: 'basejump-test@balena.io',
+				},
+			},
+		};
+		const unverifiedCommit = {
+			sha: 'head-sha-2',
+			commit: {
+				verification: { verified: false, reason: 'unsigned' },
+				author: { name: 'Unsigned Author', email: 'unsigned-author@balena.io' },
+				committer: {
+					name: 'Unsigned Committer',
+					email: 'unsigned-committer@balena.io',
+				},
+			},
+		};
+
+		const githubMock = nock('https://api.github.com')
+			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
+			.reply(200, { token: 'test' })
+			// Initial eyes reaction
+			.post(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+			)
+			.reply(201, { id: EYES_REACTION_ID })
+			// Get PR (feature)
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
+			.reply(200, {
+				number: PR_NUMBER,
+				commits: 2,
+				base: { ref: 'main', sha: 'base-sha' },
+				head: { ref: 'feature', sha: 'head-sha-2' },
+			})
+			// Compare branches, with behind_by indicating a rebase is required
+			.get('/repos/balena-user/github-app-test/compare/main...feature')
+			.reply(200, {
+				status: 'diverged',
+				ahead_by: 2,
+				behind_by: 2,
+				total_commits: 2,
+			})
+			// First page of commits is verified, and links to the next page
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.query({ per_page: 100 })
+			.reply(200, [verifiedCommit], {
+				Link: `<https://api.github.com/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits?per_page=100&page=2>; rel="next"`,
+			})
+			// Second page of commits is unverified
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.query({ per_page: 100, page: 2 })
+			.reply(200, [unverifiedCommit])
+			// React to rebase success
+			.post(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+				{
+					content: 'rocket',
+				},
+			)
+			.reply(201)
+			// Delete eyes reaction
+			.delete(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions/${EYES_REACTION_ID}`,
+			)
+			.reply(204);
+
+		await probot.receive({
+			name: 'issue_comment',
+			payload,
+		});
+
+		expect(rebaseMock).toHaveBeenCalledOnce();
+		// The unverified commit on the second page should disable signing
+		const gitConfig = rebaseMock.mock.calls[0][3];
+		expect(gitConfig).toContain('commit.gpgsign=false');
+		expect(gitConfig).not.toContain('commit.gpgsign=true');
+		expect(gitConfig).not.toContain('user.signingkey=deadbeef');
+		expect(githubMock.pendingMocks()).toHaveLength(0);
+	});
+
+	test('does not sign commits if not all commits of the PR can be listed', async () => {
+		// Mock rebase success
+		rebaseMock.mockResolvedValue(undefined);
+
+		const githubMock = nock('https://api.github.com')
+			.post(`/app/installations/${INSTALLATION_ID}/access_tokens`)
+			.reply(200, { token: 'test' })
+			// Initial eyes reaction
+			.post(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+			)
+			.reply(201, { id: EYES_REACTION_ID })
+			// Get PR (feature), with more commits than the API will list (max 250)
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}`)
+			.reply(200, {
+				number: PR_NUMBER,
+				commits: 251,
+				base: { ref: 'main', sha: 'base-sha' },
+				head: { ref: 'feature', sha: 'head-sha' },
+			})
+			// Compare branches, with behind_by indicating a rebase is required
+			.get('/repos/balena-user/github-app-test/compare/main...feature')
+			.reply(200, {
+				status: 'diverged',
+				ahead_by: 251,
+				behind_by: 2,
+				total_commits: 251,
+			})
+			// Only some of the commits are listed, all of which are verified
+			.get(`/repos/balena-user/github-app-test/pulls/${PR_NUMBER}/commits`)
+			.query({ per_page: 100 })
+			.reply(200, [
+				{
+					sha: 'head-sha',
+					commit: {
+						verification: { verified: true, reason: 'valid' },
+						author: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+						committer: {
+							name: 'Basejump Test Bot',
+							email: 'basejump-test@balena.io',
+						},
+					},
+				},
+			])
+			// React to rebase success
+			.post(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions`,
+				{
+					content: 'rocket',
+				},
+			)
+			.reply(201)
+			// Delete eyes reaction
+			.delete(
+				`/repos/balena-user/github-app-test/issues/comments/${COMMENT_ID}/reactions/${EYES_REACTION_ID}`,
+			)
+			.reply(204);
+
+		await probot.receive({
+			name: 'issue_comment',
+			payload,
+		});
+
+		expect(rebaseMock).toHaveBeenCalledOnce();
+		// The unlisted commits can't be verified, so signing should be disabled
+		const gitConfig = rebaseMock.mock.calls[0][3];
+		expect(gitConfig).toContain('commit.gpgsign=false');
 		expect(gitConfig).not.toContain('commit.gpgsign=true');
 		expect(gitConfig).not.toContain('user.signingkey=deadbeef');
 		expect(githubMock.pendingMocks()).toHaveLength(0);

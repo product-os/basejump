@@ -28,16 +28,36 @@ export const createIssueCommentReaction = async (
 	return data;
 };
 
+/**
+ * Check whether all commits of the PR are verified by GitHub
+ *
+ * The endpoint is paginated and lists a maximum of 250 commits, so commits
+ * are treated as unverified unless all `commitCount` commits could be listed.
+ *
+ * See: https://docs.github.com/en/rest/pulls/pulls#list-commits-on-a-pull-request
+ */
 export const areCommitsVerified = async (
 	ctx: Context<'issue_comment.created'>,
+	commitCount: number,
 	logger: Logger,
 ): Promise<boolean> => {
 	try {
 		// Get all commits for the PR
-		const { data: commits } = await ctx.octokit.rest.pulls.listCommits({
-			...ctx.repo(),
-			pull_number: ctx.payload.issue.number,
-		});
+		const commits = await ctx.octokit.paginate(
+			ctx.octokit.rest.pulls.listCommits,
+			{
+				...ctx.repo(),
+				pull_number: ctx.payload.issue.number,
+				per_page: 100,
+			},
+		);
+
+		if (commits.length !== commitCount) {
+			logger.warn(
+				`Listed ${commits.length} of ${commitCount} commits, so not all commits can be checked for verification`,
+			);
+			return false;
+		}
 
 		// Split commits into verified and unverified
 		const verifiedCommits = [];

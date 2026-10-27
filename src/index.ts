@@ -83,7 +83,11 @@ export default (app: Probot) => {
 				}
 
 				// For each commit, get verification status
-				const shouldSignDuringRebase = await areCommitsVerified(ctx, logger);
+				const shouldSignDuringRebase = await areCommitsVerified(
+					ctx,
+					pr.commits,
+					logger,
+				);
 
 				if (!shouldSignDuringRebase) {
 					logger.warn(
